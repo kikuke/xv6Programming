@@ -2,6 +2,7 @@
 #define T_FILE 2   // File
 #define T_DEV  3   // Device
 
+// Study: uint가 있는 헤더를 직접 인클루드하지 않음
 struct stat {
   short type;  // Type of file
   int dev;     // File system's disk device
