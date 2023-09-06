@@ -473,12 +473,13 @@ sys_lseek(void)
     return -1;
   seek_rem = seek_off - f->ip->size;
   while(seek_rem > 0){
-    if((r = filewrite(f, " ", 1)) < 0)
+    //Todo: 잘 되는지 체크
+    if((r = filewrite(f, (void*)0, 1)) < 0)
       return -1;
     
     seek_rem -= r;
   }
 
   f->off = seek_off;
-  return 0;
+  return f->off;
 }
