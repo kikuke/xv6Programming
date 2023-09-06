@@ -23,8 +23,9 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+// custom system calls
+off_xvt lseek(int, off_xvt, int);
 
-// Study: #include "types.h" #include "stat.h" 직접 include 하지 않음
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);

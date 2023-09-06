@@ -442,3 +442,43 @@ sys_pipe(void)
   fd[1] = fd1;
   return 0;
 }
+
+// Custom System Call
+int
+sys_lseek(void)
+{
+  int fd;
+  off_xvt offset;
+  int whence;
+
+  int seek_off;
+  int seek_rem;
+  int r;
+
+  struct file *f;
+
+  if(argfd(0, &fd, &f) < 0 || argint(1, &offset) < 0 || argint(2, &whence) < 0)
+    return -1;
+  
+  if(whence == SEEK_SET){
+    seek_off = offset;
+  } else if (whence == SEEK_CUR){
+    seek_off = f->off + offset;
+  } else if (whence == SEEK_END){
+    seek_off = f->ip->size + offset;
+  } else
+    return -1;
+
+  if(seek_off < 0)
+    return -1;
+  seek_rem = seek_off - f->ip->size;
+  while(seek_rem > 0){
+    if((r = filewrite(f, " ", 1)) < 0)
+      return -1;
+    
+    seek_rem -= r;
+  }
+
+  f->off = seek_off;
+  return 0;
+}
