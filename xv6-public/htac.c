@@ -98,11 +98,10 @@ htac(int fd)
             exit();
         }
         printline(fd);
-
         if(rewind_off == 0)
             return;
 
-        if (lseek(fd, rewind_off, SEEK_SET)) {
+        if (lseek(fd, rewind_off, SEEK_SET) < 0) {
             printf(2, "htac: rewindline error\n");
             exit();
         }
