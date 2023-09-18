@@ -106,3 +106,14 @@ sys_date(void)
 
   return 0;
 }
+
+int
+sys_alarm(void)
+{
+  uint s;
+  if(argint(0, (int *)&s) < 0)
+    return -1;
+  
+  // Todo: 알람 로직
+  return 0;
+}

@@ -26,6 +26,7 @@ int uptime(void);
 // custom system calls
 off_xvt lseek(int, off_xvt, int);
 int date(struct rtcdate*);
+uint alarm(uint);
 
 // ulib.c
 int stat(const char*, struct stat*);
