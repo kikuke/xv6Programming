@@ -14,6 +14,9 @@ extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
 
+// main.c의 main에서 idtinit보다 앞서 호출됨
+// vectors.S -> vectors[] 이용해 idt를 초기화 한다고함
+// 인터럽트 발생하면 idt를 이용해 트랩 프레임 만들고 alltraps -> trap() 호출??
 void
 tvinit(void)
 {
@@ -26,6 +29,8 @@ tvinit(void)
   initlock(&tickslock, "time");
 }
 
+// main.c의 main() -> mpmain() 에서 스케줄러 호출 이전 실행됨. 머하는앤진 모름
+// 이후 스케줄러에서 init프로세스 만들고 init에서 sh 실행해서 sh에서 프로그램을 입력해 실행가능
 void
 idtinit(void)
 {
