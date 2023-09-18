@@ -22,3 +22,4 @@
 #define SYS_close  21
 // Custom System call
 #define SYS_lseek  22
+#define SYS_date   23

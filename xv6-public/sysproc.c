@@ -89,3 +89,20 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// 현재 날짜를 rtcdate 포인터 위치에 저장하고 콘솔에 출력합니다
+// 성공시 0, 실패시 -1리턴
+int
+sys_date(void)
+{
+  struct rtcdate *d;
+
+  if(argptr(0, (void*)&d, sizeof(*d)) < 0)
+    return -1;
+
+  cmostime(d);
+  cprintf("Current time : %d-%d-%d %d:%d:%d\n",
+    d->year, d->month, d->day, d->hour, d->minute, d->second);
+
+  return 0;
+}
