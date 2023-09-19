@@ -58,7 +58,8 @@ trap(struct trapframe *tf)
       acquire(&tickslock);
       ticks++;
       // 알람이 설정됐을 경우 알람 틱 증가
-      if(myproc()->alarm_timer > 0)
+      // 러닝 상태 프로세스가 있을 경우
+      if(myproc() && myproc()->alarm_timer > 0)
         myproc()->alarm_ticks++;
       // 잠시 락을 걸며 해당 채널의 모든 프로세스를 러너블 상태로 만듦
       // 아마 이거 때문에 스케쥴 되지 않을까
@@ -122,11 +123,11 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
 
-  // init 프로세스가 아니고 알람 타이머가 끝났다면 프린트후 종료
+  // 러닝 프로세스이고 알람 타이머가 끝났다면 프린트후 종료
   if(myproc() && myproc()->alarm_timer && 
       myproc()->alarm_timer <= myproc()->alarm_ticks) {
     cprintf("SSU_Alarm!\n");
-    date();
+    print_date();
     exit();
   }
 }

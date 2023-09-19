@@ -101,9 +101,6 @@ sys_date(void)
     return -1;
 
   cmostime(d);
-  cprintf("Current time : %d-%d-%d %d:%d:%d\n",
-    d->year, d->month, d->day, d->hour, d->minute, d->second);
-
   return 0;
 }
 
@@ -114,6 +111,6 @@ sys_alarm(void)
   if(argint(0, (int *)&s) < 0)
     return -1;
   
-  myproc()->alarm_timer = s; //Todo: ticks to Second로 변환필요 
+  myproc()->alarm_timer = s * SECPERTICKS;
   return 0;
 }

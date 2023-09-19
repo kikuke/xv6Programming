@@ -69,6 +69,7 @@ myproc(void) {
   return p;
 }
 
+// 안쓰는 프로세스 초기화 해주고 꺼내줌
 //PAGEBREAK: 32
 // Look in the process table for an UNUSED proc.
 // If found, change state to EMBRYO and initialize
@@ -178,6 +179,7 @@ growproc(int n)
   return 0;
 }
 
+// 포크시 프로세스 초기화
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
@@ -271,6 +273,7 @@ exit(void)
   panic("zombie exit");
 }
 
+// 자식 프로세스 종료되면 프로세스 필드 값들 예쁘게 만들어줌
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
 int
@@ -298,6 +301,11 @@ wait(void)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
+        // Custom Start
+        // 이거 안해주면 알람 이상함
+        p->alarm_ticks = 0;
+        p->alarm_timer = 0;
+        // Custom End
         p->state = UNUSED;
         release(&ptable.lock);
         return pid;
@@ -540,7 +548,7 @@ procdump(void)
 }
 
 void
-date(void)
+print_date(void)
 {
   struct rtcdate d;
 

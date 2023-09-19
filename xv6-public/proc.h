@@ -50,6 +50,7 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 
+  // 추가 된 변수는 매 프로세스 새로 fork때마다 초기화 시켜줘야함
   uint alarm_ticks;
   uint alarm_timer;
 };
