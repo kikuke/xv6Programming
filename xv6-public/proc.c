@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "date.h"
 
 struct {
   struct spinlock lock;
@@ -536,4 +537,14 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+void
+date(void)
+{
+  struct rtcdate d;
+
+  cmostime(&d);
+  cprintf("Current time : %d-%d-%d %d:%d:%d\n",
+    d.year, d.month, d.day, d.hour, d.minute, d.second);
 }

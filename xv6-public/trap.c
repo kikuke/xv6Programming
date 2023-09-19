@@ -57,10 +57,11 @@ trap(struct trapframe *tf)
       // 락 될때까지 계속 시도. 스핀락
       acquire(&tickslock);
       ticks++;
-      // 알람 틱 증가
-      myproc()->alarm_ticks++;
+      // 알람이 설정됐을 경우 알람 틱 증가
+      if(myproc()->alarm_timer > 0)
+        myproc()->alarm_ticks++;
       // 잠시 락을 걸며 해당 채널의 모든 프로세스를 러너블 상태로 만듦
-      //  아마 이때 스케쥴 되지 않을까
+      // 아마 이거 때문에 스케쥴 되지 않을까
       wakeup(&ticks);
       // 락을 풀어줌??
       release(&tickslock);
@@ -121,10 +122,11 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
 
-  // init 프로세스가 아니고 타이머가 끝났다면 프린트후 종료
-  if(myproc() && myproc()->alarm_timer <= myproc()->alarm_ticks) {
+  // init 프로세스가 아니고 알람 타이머가 끝났다면 프린트후 종료
+  if(myproc() && myproc()->alarm_timer && 
+      myproc()->alarm_timer <= myproc()->alarm_ticks) {
     cprintf("SSU_Alarm!\n");
-    // Todo: 날짜 출력
+    date();
     exit();
   }
 }
