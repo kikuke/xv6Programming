@@ -26,12 +26,14 @@ pinit(void)
   initlock(&ptable.lock, "ptable");
 }
 
+// 몇번째 cpu인지 찾음
 // Must be called with interrupts disabled
 int
 cpuid() {
   return mycpu()-cpus;
 }
 
+// 인터럽트 발생한 cpu 찾기??
 // Must be called with interrupts disabled to avoid the caller being
 // rescheduled between reading lapicid and running through the loop.
 struct cpu*
@@ -52,16 +54,17 @@ mycpu(void)
   panic("unknown apicid\n");
 }
 
+// 현재 스케줄링 된 프로세스를 찾는 함수?
 // Disable interrupts so that we are not rescheduled
 // while reading proc from the cpu structure
 struct proc*
 myproc(void) {
   struct cpu *c;
   struct proc *p;
-  pushcli();
-  c = mycpu();
+  pushcli(); // cli호출 ncli 1 증가. cli는 모든 인터럽트에 대해 비활성화
+  c = mycpu(); // 인터럽트 발생한 cpu 찾기
   p = c->proc;
-  popcli();
+  popcli(); // 다시 ncli 1감소 0이고 intena(인터럽허용)이 0이 아닐경우 sti 실행. sti는 모든 인터럽트에 대해 활성화
   return p;
 }
 
@@ -451,6 +454,7 @@ sleep(void *chan, struct spinlock *lk)
   }
 }
 
+// 해당 채널의 슬립상태 애들을 러너블로 만들어줌. 아마 스케줄링 되지 않을까
 //PAGEBREAK!
 // Wake up all processes sleeping on chan.
 // The ptable lock must be held.
@@ -464,6 +468,7 @@ wakeup1(void *chan)
       p->state = RUNNABLE;
 }
 
+// 잠시 락을 걸며 해당 채널의 모든 프로세스를 러너블 상태로 만듦
 // Wake up all processes sleeping on chan.
 void
 wakeup(void *chan)

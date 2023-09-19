@@ -55,11 +55,11 @@
 2454 // Disable interrupts so that we are not rescheduled
 2455 // while reading proc from the cpu structure
 2456 struct proc*
-2457 myproc(void) {
+2457 myproc(void) { 
 2458   struct cpu *c;
 2459   struct proc *p;
 2460   pushcli();
-2461   c = mycpu();
+2461   c = mycpu(); // 인터럽트 발생한 cpu찾기??
 2462   p = c->proc;
 2463   popcli();
 2464   return p;

@@ -105,12 +105,14 @@ loadgs(ushort v)
   asm volatile("movw %0, %%gs" : : "r" (v));
 }
 
+// clear interupt 모든 인터럽트 비활성화
 static inline void
 cli(void)
 {
   asm volatile("cli");
 }
 
+// set interupt 모든 인터럽트 활성화
 static inline void
 sti(void)
 {

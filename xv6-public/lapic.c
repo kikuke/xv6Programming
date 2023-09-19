@@ -97,6 +97,7 @@ lapicinit(void)
   lapicw(TPR, 0);
 }
 
+// logical programmable interupt controller id
 int
 lapicid(void)
 {

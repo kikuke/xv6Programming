@@ -114,6 +114,6 @@ sys_alarm(void)
   if(argint(0, (int *)&s) < 0)
     return -1;
   
-  // Todo: 알람 로직
+  myproc()->alarm_timer = s; //Todo: ticks to Second로 변환필요 
   return 0;
 }

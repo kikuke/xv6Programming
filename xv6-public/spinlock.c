@@ -96,11 +96,11 @@ holding(struct spinlock *lock)
   return r;
 }
 
-
+// cli: clear interupt sti: set interupt
 // Pushcli/popcli are like cli/sti except that they are matched:
 // it takes two popcli to undo two pushcli.  Also, if interrupts
 // are off, then pushcli, popcli leaves them off.
-
+// cli호출 ncli 1 증가. cli는 모든 인터럽트에 대해 비활성화
 void
 pushcli(void)
 {
@@ -113,6 +113,7 @@ pushcli(void)
   mycpu()->ncli += 1;
 }
 
+// 다시 ncli 1감소 0이고 intena(인터럽허용)이 0이 아닐경우 sti 실행. sti는 모든 인터럽트에 대해 활성화
 void
 popcli(void)
 {

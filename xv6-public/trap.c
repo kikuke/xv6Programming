@@ -52,11 +52,17 @@ trap(struct trapframe *tf)
   }
 
   switch(tf->trapno){
-  case T_IRQ0 + IRQ_TIMER:
-    if(cpuid() == 0){
+  case T_IRQ0 + IRQ_TIMER: // 틱마다발생되는 타이머 인터럽트
+    if(cpuid() == 0){ // 첫번째 cpu인 경우
+      // 락 될때까지 계속 시도. 스핀락
       acquire(&tickslock);
       ticks++;
+      // 알람 틱 증가
+      myproc()->alarm_ticks++;
+      // 잠시 락을 걸며 해당 채널의 모든 프로세스를 러너블 상태로 만듦
+      //  아마 이때 스케쥴 되지 않을까
       wakeup(&ticks);
+      // 락을 풀어줌??
       release(&tickslock);
     }
     lapiceoi();
@@ -114,4 +120,11 @@ trap(struct trapframe *tf)
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
+
+  // init 프로세스가 아니고 타이머가 끝났다면 프린트후 종료
+  if(myproc() && myproc()->alarm_timer <= myproc()->alarm_ticks) {
+    cprintf("SSU_Alarm!\n");
+    // Todo: 날짜 출력
+    exit();
+  }
 }
