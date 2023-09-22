@@ -73,6 +73,7 @@ lgdt(struct segdesc *p, int size)
 
 struct gatedesc;
 
+// load interupt data table
 static inline void
 lidt(struct gatedesc *p, int size)
 {

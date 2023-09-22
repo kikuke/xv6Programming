@@ -342,8 +342,10 @@ scheduler(void)
     // Enable interrupts on this processor.
     sti();
 
+    // 락을 가져오려 계속 시도
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+    // Runnable상태인 프로세스를 찾는다. 초기엔 인공적으로 만든 init 프로세스가 당첨
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
@@ -355,10 +357,11 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 
+      // swtch.S 좀더 분석해보기
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
-      // Process is done running for now.
+      // Process is done running for now. 작업이 끝났을 경우 여기로 옴. swtch에서 이전 esi를 저장해뒀기 때문?
       // It should have changed its p->state before coming back.
       c->proc = 0;
     }
@@ -367,6 +370,7 @@ scheduler(void)
   }
 }
 
+// 다음 프로세스에 양보함.(스케줄링 해라) 만약 러닝상태면 패닉. 인터럽트 처리 안하면 패닉.
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores
 // intena because intena is a property of this
@@ -393,6 +397,7 @@ sched(void)
   mycpu()->intena = intena;
 }
 
+// 러닝상태를 러너블로 바꾸고 다른걸로 스케줄링함
 // Give up the CPU for one scheduling round.
 void
 yield(void)

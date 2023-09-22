@@ -29,7 +29,7 @@ tvinit(void)
   initlock(&tickslock, "time");
 }
 
-// main.c의 main() -> mpmain() 에서 스케줄러 호출 이전 실행됨. 머하는앤진 모름
+// main.c의 main() -> mpmain() 에서 스케줄러 호출 이전 실행됨. lidt는 load interrupt data table
 // 이후 스케줄러에서 init프로세스 만들고 init에서 sh 실행해서 sh에서 프로그램을 입력해 실행가능
 void
 idtinit(void)
@@ -113,6 +113,7 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
 
+  // 이거 때문에 스케줄링이 일어남. 결국 타이머 울릴때마다 스케줄링 됨
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
   if(myproc() && myproc()->state == RUNNING &&
