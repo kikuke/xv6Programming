@@ -361,7 +361,8 @@ scheduler(void)
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
-      // Process is done running for now. 작업이 끝났을 경우 여기로 옴. swtch에서 이전 esi를 저장해뒀기 때문?
+      // 작업이 끝났을 경우 여기로 옴. swtch에서 이전 esi를 저장해뒀기 때문?
+      // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
     }

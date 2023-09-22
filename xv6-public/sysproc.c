@@ -111,6 +111,6 @@ sys_alarm(void)
   if(argint(0, (int *)&s) < 0)
     return -1;
   
-  myproc()->alarm_timer = s * SECPERTICKS;
+  myproc()->alarm_timer = ticks + s * SECPERTICKS;
   return 0;
 }

@@ -56,13 +56,15 @@ trap(struct trapframe *tf)
     if(cpuid() == 0){ // 첫번째 cpu인 경우
       // 락 될때까지 계속 시도. 스핀락
       acquire(&tickslock);
+      // 틱은 다른 프로세스가 걸렸을 때에도 올라감. 전역이어서
       ticks++;
       // 알람이 설정됐을 경우 알람 틱 증가
       // 러닝 상태 프로세스가 있을 경우
+      // ++처리 하면 안됨. 다른 프로세스 잡혔을 경우 틱 증가 반영이 안됨
       if(myproc() && myproc()->alarm_timer > 0)
-        myproc()->alarm_ticks++;
+        myproc()->alarm_ticks = ticks;
       // 잠시 락을 걸며 해당 채널의 모든 프로세스를 러너블 상태로 만듦
-      // 아마 이거 때문에 스케쥴 되지 않을까
+      // 아마 이거 때문에 자던애들이 스케쥴 될수 있음
       wakeup(&ticks);
       // 락을 풀어줌??
       release(&tickslock);
