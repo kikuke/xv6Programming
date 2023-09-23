@@ -394,6 +394,7 @@ sched(void)
   if(readeflags()&FL_IF)
     panic("sched interruptible");
   intena = mycpu()->intena;
+  // 진짜 proc.c의 scheduler함수로 이동됨. 왜냐면 그쪽 정보를 푸시?해놨어서
   swtch(&p->context, mycpu()->scheduler);
   mycpu()->intena = intena;
 }
@@ -430,6 +431,8 @@ forkret(void)
   // Return to "caller", actually trapret (see allocproc).
 }
 
+// 여기서 채널은 누구 주체로 sleep이 되었는가에 대한 느낌?
+// 자신을 슬립상태로 만들고 스케줄링 시킴
 // Atomically release lock and sleep on chan.
 // Reacquires lock when awakened.
 void

@@ -5,7 +5,7 @@
 # Save the current registers on the stack, creating
 # a struct context, and save its address in *old.
 # Switch stacks to new and pop previously-saved registers.
-
+# 진짜로 proc.c의 scheduler() 함수로 이동하는듯
 .globl swtch
 swtch:
   # new
