@@ -37,6 +37,7 @@ idtinit(void)
   lidt(idt, sizeof(idt));
 }
 
+// 코드 자체는 명령줄일 뿐이라 인터럽트 발생시마다 트랩으로 뛰어들지만 acquire(&tickslock);의 인터럽트 무시 명령때문에 수행되지 않는다
 //PAGEBREAK: 41
 void
 trap(struct trapframe *tf)
