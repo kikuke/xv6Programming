@@ -115,6 +115,14 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
 
+  // 러닝 프로세스이고 알람 타이머가 끝났다면 프린트후 종료
+  if(myproc() && myproc()->alarm_timer && 
+      myproc()->alarm_timer <= myproc()->alarm_ticks) {
+    cprintf("SSU_Alarm!\n");
+    print_date();
+    exit();
+  }
+
   // 이거 때문에 스케줄링이 일어남. 결국 타이머 울릴때마다 스케줄링 됨
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
@@ -125,12 +133,4 @@ trap(struct trapframe *tf)
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
-
-  // 러닝 프로세스이고 알람 타이머가 끝났다면 프린트후 종료
-  if(myproc() && myproc()->alarm_timer && 
-      myproc()->alarm_timer <= myproc()->alarm_ticks) {
-    cprintf("SSU_Alarm!\n");
-    print_date();
-    exit();
-  }
 }
