@@ -126,7 +126,8 @@ found:
   // 포크 끝나게 시키려고 이렇게 다음 실행 지점을 정해줌
   p->context->eip = (uint)forkret;
 
-  // 위에서 사용하려고 한 부분들을 제외한 나머지 영역들이 사용해도되는 스택 영역
+  // 위에서 따로 남겨둔 부분이 커널 영역
+  // 위에서 사용하려고 한 부분들을 제외한 나머지 영역들이 사용해도되는 스택(유저) 영역
 
   return p;
 }
@@ -170,6 +171,7 @@ userinit(void)
   release(&ptable.lock);
 }
 
+// 프로세스 페이지(메모리) 크기를 늘려줌
 // Grow current process's memory by n bytes.
 // Return 0 on success, -1 on failure.
 int

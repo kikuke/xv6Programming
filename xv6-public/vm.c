@@ -29,6 +29,8 @@ seginit(void)
   lgdt(c->gdt, sizeof(c->gdt));
 }
 
+// 페이지 테이블 끝나는 지점 알려줌
+// alloc이 1이면 할당해줌. 0일경우는 pgdir의 해당 위치가 존재해야함 PTE_P 메타 데이터
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
@@ -38,6 +40,7 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   pde_t *pde;
   pte_t *pgtab;
 
+  // 해당 위치에 대해 va는 pgdir로 부터 idx느낌
   pde = &pgdir[PDX(va)];
   if(*pde & PTE_P){
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
@@ -54,6 +57,8 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   return &pgtab[PTX(va)];
 }
 
+// 페이지마다 메타데이터를 찍어주는 듯. 권한정보 나 존재, 어떤 데이터인지에 대한 정보.
+// 만약 이전에 사용하던 공간이 걸리면 패닉
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
@@ -68,6 +73,7 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
   for(;;){
     if((pte = walkpgdir(pgdir, a, 1)) == 0)
       return -1;
+    // 이미 있고 사용하는 공간이면 패닉
     if(*pte & PTE_P)
       panic("remap");
     *pte = pa | perm | PTE_P;
@@ -100,20 +106,22 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 // between V2P(end) and the end of physical memory (PHYSTOP)
 // (directly addressable from end..P2V(PHYSTOP)).
 
+// 커널영역 초기화에 사용되는 값들을 세팅해둔 데이터
 // This table defines the kernel's mappings, which are present in
 // every process's page table.
 static struct kmap {
-  void *virt;
-  uint phys_start;
-  uint phys_end;
-  int perm;
+  void *virt; // 시작 주소
+  uint phys_start; // 시작지점 offset?
+  uint phys_end; // 끝나는 지점 offset?
+  int perm; // 권한
 } kmap[] = {
  { (void*)KERNBASE, 0,             EXTMEM,    PTE_W}, // I/O space
- { (void*)KERNLINK, V2P(KERNLINK), V2P(data), 0},     // kern text+rodata
+ { (void*)KERNLINK, V2P(KERNLINK), V2P(data), 0},     // kern text+rodata // 텍스트 데이터 공간에 대한 정보
  { (void*)data,     V2P(data),     PHYSTOP,   PTE_W}, // kern data+memory
  { (void*)DEVSPACE, DEVSPACE,      0,         PTE_W}, // more devices
 };
 
+// 가상메모리에서 커널 영역 메모리 공간을 할당하고, kmap을 이용해 값을 세팅해줌
 // Set up kernel part of a page table.
 pde_t*
 setupkvm(void)
@@ -152,6 +160,8 @@ switchkvm(void)
   lcr3(V2P(kpgdir));   // switch to the kernel page table
 }
 
+// Todo: 좀더 분석해보기
+// ts(tasksegment)의 eip등과 같은 레지스터들 싹다 스위칭 시킴
 // Switch TSS and h/w page table to correspond to process p.
 void
 switchuvm(struct proc *p)
@@ -177,6 +187,7 @@ switchuvm(struct proc *p)
   popcli();
 }
 
+// 최초의 uvm을 할당함. 얘는 kvm 바로 옆에있는애임. 붙어있음
 // Load the initcode into address 0 of pgdir.
 // sz must be less than a page.
 void

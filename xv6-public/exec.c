@@ -35,6 +35,7 @@ exec(char *path, char **argv)
   if(elf.magic != ELF_MAGIC)
     goto bad;
 
+  // 가상메모리에서 커널 영역을 할당해줌
   if((pgdir = setupkvm()) == 0)
     goto bad;
 
@@ -49,6 +50,7 @@ exec(char *path, char **argv)
       goto bad;
     if(ph.vaddr + ph.memsz < ph.vaddr)
       goto bad;
+    // 가상 메모리에서 유저 영역을 할당해줌
     if((sz = allocuvm(pgdir, sz, ph.vaddr + ph.memsz)) == 0)
       goto bad;
     if(ph.vaddr % PGSIZE != 0)
