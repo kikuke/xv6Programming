@@ -70,6 +70,7 @@ myproc(void) {
 }
 
 // 안쓰는 프로세스 초기화 해주고 꺼내줌
+// 할당 받은 메모리에 사용되는 곳들을 영역별로 나눠줌
 //PAGEBREAK: 32
 // Look in the process table for an UNUSED proc.
 // If found, change state to EMBRYO and initialize
@@ -96,6 +97,7 @@ found:
 
   release(&ptable.lock);
 
+  // 사용할 메모리를 할당 받음
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
     p->state = UNUSED;
@@ -103,20 +105,28 @@ found:
   }
   sp = p->kstack + KSTACKSIZE;
 
+  // 맨 앞에 트랩프레임 공간을 남겨둠
   // Leave room for trap frame.
   sp -= sizeof *p->tf;
+  // 남겨둔 부분을 트랩프레임 공간으로 사용하겠다
   p->tf = (struct trapframe*)sp;
 
   // 트랩 끝나면 복귀지점 정해주는 곳
   // Set up new context to start executing at forkret,
   // which returns to trapret.
   sp -= 4;
+  // 트랩프레임 바로 뒤는 trapret 용도로 씀
   *(uint*)sp = (uint)trapret;
 
+  // context 크기 만큼의 스택공간을 남겨둠
   sp -= sizeof *p->context;
+  // 그걸 콘텍스트지점으로 사용하겠다.
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
+  // 포크 끝나게 시키려고 이렇게 다음 실행 지점을 정해줌
   p->context->eip = (uint)forkret;
+
+  // 위에서 사용하려고 한 부분들을 제외한 나머지 영역들이 사용해도되는 스택 영역
 
   return p;
 }

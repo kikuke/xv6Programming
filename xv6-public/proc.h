@@ -37,8 +37,8 @@ enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 // Per-process state
 struct proc {
   uint sz;                     // Size of process memory (bytes)
-  pde_t* pgdir;                // Page table
-  char *kstack;                // Bottom of kernel stack for this process
+  pde_t* pgdir;                // Page table // 페이징된 공간. 아마 코드들이나 데이터 쓰는거 있는곳?
+  char *kstack;                // Bottom of kernel stack for this process // 할당받은 스택 공간
   enum procstate state;        // Process state
   int pid;                     // Process ID
   struct proc *parent;         // Parent process

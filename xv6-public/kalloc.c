@@ -75,7 +75,7 @@ kfree(char *v)
   if(kmem.use_lock)
     release(&kmem.lock);
 }
-
+// 한 페이지의 물리 메모리를 할당해서 줌
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
