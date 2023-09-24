@@ -33,7 +33,7 @@ main(void)
   ideinit();       // disk 
   startothers();   // start other processors
   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
-  userinit();      // first user process
+  userinit();      // first user process // init프로세스 만드는 자리. 스케쥴러에서 최초로 이닛프로세스가 돌아감. init 프로세스는 sh를 실행시키고 종료될때까지 대기. 종료되도 또 sh 실행시킴
   mpmain();        // finish this processor's setup
 }
 

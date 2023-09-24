@@ -121,6 +121,7 @@ found:
   return p;
 }
 
+// init 프로세스만들어서 러너블상태로 만들어줌
 //PAGEBREAK: 32
 // Set up first user process.
 void
