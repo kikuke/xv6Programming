@@ -276,6 +276,7 @@ exit(void)
 }
 
 // 자식 프로세스 종료되면 프로세스 필드 값들 예쁘게 만들어줌
+// 자식 프로세스가 자신을 kill하거나 자식프로세스가 자신의 채널을 깨우지 않는다면 계속 자버림
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
 int
