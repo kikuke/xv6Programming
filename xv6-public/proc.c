@@ -107,6 +107,7 @@ found:
   sp -= sizeof *p->tf;
   p->tf = (struct trapframe*)sp;
 
+  // 트랩 끝나면 복귀지점 정해주는 곳
   // Set up new context to start executing at forkret,
   // which returns to trapret.
   sp -= 4;
@@ -357,8 +358,9 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 
-      // swtch.S 좀더 분석해보기
+      // esp 등 레지스터 값들을 바꿈
       swtch(&(c->scheduler), p->context);
+      // 여기서 가상메모리 어쩌구로 스위칭 완료되는듯 lcr3공부해보기
       switchkvm();
 
       // 작업이 끝났을 경우 여기로 옴. swtch에서 이전 esi를 저장해뒀기 때문?

@@ -42,8 +42,8 @@ struct proc {
   enum procstate state;        // Process state
   int pid;                     // Process ID
   struct proc *parent;         // Parent process
-  struct trapframe *tf;        // Trap frame for current syscall
-  struct context *context;     // swtch() here to run process
+  struct trapframe *tf;        // Trap frame for current syscall // 트랩 발생시 trap()에 제공할 정보들 모아두는 곳
+  struct context *context;     // swtch() here to run process // 스케쥴링함수일때는 해당 프로세스의 이전 작업으로, 작업중 프로세스일 때는 스케줄링 함수로점프해서 myproc = 0이됨
   void *chan;                  // If non-zero, sleeping on chan
   int killed;                  // If non-zero, have been killed
   struct file *ofile[NOFILE];  // Open files
