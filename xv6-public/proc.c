@@ -272,6 +272,7 @@ exit(void)
   // Parent might be sleeping in wait().
   wakeup1(curproc->parent);
 
+  // 자식 프로세스가 있다면 부모를 initprocess로 만듦. 걔가 좀비상태라면 이닛프로세스 채널 자고있는 애들을 다깨움
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){
@@ -281,6 +282,7 @@ exit(void)
     }
   }
 
+  // exit 한다고 바로 종료되는 것이 아님. 좀비상태로 있다가 wait를 만나야 좀비가 됨
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
   sched();

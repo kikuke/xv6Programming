@@ -7,6 +7,7 @@
         "defs.h": "c",
         "date.h": "c",
         "x86.h": "c",
-        "param.h": "c"
+        "param.h": "c",
+        "memlayout.h": "c"
     }
 }

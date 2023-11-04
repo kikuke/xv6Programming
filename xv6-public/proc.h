@@ -38,7 +38,7 @@ enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 struct proc {
   uint sz;                     // Size of process memory (bytes)
   pde_t* pgdir;                // Page table // 페이징된 공간. 아마 코드들이나 데이터 쓰는거 있는곳? 이게 찐 메모리공간. 페이징 할당 및 복사는 exec시 initkvm, inituvm을 통해 붙여준다. 유저 메모리공간은 증가할수있는 공간. 요상한 메타데이터는 페이지 테이블에만 붙여주고 스택에는 붙이지않음
-  char *kstack;                // Bottom of kernel stack for this process // 할당받은 스택 공간. 함수같은 것들 쓰려고 모아놓는 곳. 스택 영역과 코드 읽으려고 쓰는 페이지(데이터, 코드) 영역은 분리되어있다. 스택은 고정크기의 공간.
+  char *kstack;                // Bottom of kernel stack for this process // 할당받은 커널 스택 공간. 함수같은 것들 쓰려고 모아놓는 곳. 커널 스택은 고정크기의 공간.
   enum procstate state;        // Process state
   int pid;                     // Process ID
   struct proc *parent;         // Parent process

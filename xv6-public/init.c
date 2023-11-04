@@ -31,6 +31,7 @@ main(void)
       printf(1, "init: exec sh failed\n");
       exit();
     }
+    // 고아가 됐는데 종료된 애들 종료시켜버림
     while((wpid=wait()) >= 0 && wpid != pid)
       printf(1, "zombie!\n");
   }

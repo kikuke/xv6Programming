@@ -232,6 +232,7 @@ consoleintr(int (*getc)(void))
   }
 }
 
+// 읽게되면 프로세스 완료될때까지 자버림
 int
 consoleread(struct inode *ip, char *dst, int n)
 {
