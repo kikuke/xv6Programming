@@ -7,7 +7,7 @@
 #include "proc.h"
 #include "spinlock.h"
 
-struct rproc_list *run_queues[MAXRUNQ]; // 25개의 run queue
+struct run_queue *run_queues[MAXRUNQ]; // 25개의 run queue
 
 struct {
   struct spinlock lock;
@@ -319,6 +319,28 @@ wait(void)
   }
 }
 
+struct proc*
+ssu_schedule()
+{
+  struct run_queue *q;
+  int best_pri = MAXPRIOR + 1; // 가장 높은 우선순위. MAXPRIOR도 스케줄 되야 하므로
+  struct proc *best_proc = 0; // 가장 높은 우선순위 proc
+
+  for (int i=0; i < MAXRUNQ; i++) { // 전체 RUNQ 탐색
+    for (q = run_queues[i]; q != 0; q = q->next) { // 연결 리스트 탐색
+      if (q->rproc->state == RUNNABLE && q->rproc->priority < best_pri) { // RUNNABLE이고 이전 프로세스보다 우선순위가 높을경우
+        best_proc = q->rproc;
+        best_pri = best_proc->priority;
+      }
+    }
+
+    if (best_proc) // 해당 큐에서 발견됐다면 리턴
+      break;
+  }
+
+  return best_proc;
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -340,24 +362,26 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
+    
+    if((p = ssu_schedule()) == 0) // ssu_scheduling으로 변경
+      panic("ssu_schedule");
+    
+    // c->proc->state = RUNNABLE; // Todo: 확인 되면 다시 주석해제 후 yield 부분 주석
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+    // Switch to chosen process.  It is the process's job
+    // to release ptable.lock and then reacquire it
+    // before jumping back to us.
+    c->proc = p;
+    switchuvm(p);
+    p->state = RUNNING;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+    swtch(&(c->scheduler), p->context);
+    switchkvm();
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
-    }
+    // Process is done running for now.
+    // It should have changed its p->state before coming back.
+    c->proc = 0;
+
     release(&ptable.lock);
 
   }
@@ -394,7 +418,7 @@ void
 yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
-  myproc()->state = RUNNABLE;
+  myproc()->state = RUNNABLE; // Todo: 확인되면 다시 주석 처리후 스케쥴링에서 주석 해제
   sched();
   release(&ptable.lock);
 }

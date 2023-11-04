@@ -55,17 +55,12 @@ struct proc {
   uint cpu_used;              // 프로세스가 생성된 이후 CPU를 사용한 총 합 시간(tick)
 };
 
-// run proc
-struct rproc {
+// run_queue
+struct run_queue {
   struct proc *rproc; // process
-  
-  struct run_proc *next; // 다음 element
-};
 
-// run proc list
-struct rproc_list {
-  struct run_proc *head; // list 처음
-  struct run_proc *tail; // list 끝
+  struct run_queue *next; // 다음 element
+  struct run_queue *tail; // list 끝
 };
 
 // Process memory is laid out contiguously, low addresses first:
