@@ -12,3 +12,5 @@
 #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
 #define FSSIZE       1000  // size of file system in blocks
 #define MAXRUNQ      25   // run queue 최대 크기
+#define MAXPRIOR     99   // priority 최대 값
+#define TIMEQUANTUM  30   // tick단위 TQ 값

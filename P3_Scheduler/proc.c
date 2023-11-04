@@ -150,6 +150,7 @@ userinit(void)
   // because the assignment might not be atomic.
   acquire(&ptable.lock);
 
+  p->priority = MAXPRIOR; // idle process(init process)는 priority 99(최대 값)
   p->state = RUNNABLE;
 
   release(&ptable.lock);
@@ -296,6 +297,11 @@ wait(void)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
+
+        p->priority = MAXPRIOR; // 종료된 프로세스는 혹시 모르니 최대값
+        p->proc_tick = 0;
+        p->cpu_used = 0;
+
         p->state = UNUSED;
         release(&ptable.lock);
         return pid;

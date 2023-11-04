@@ -51,6 +51,13 @@ trap(struct trapframe *tf)
     if(cpuid() == 0){
       acquire(&tickslock);
       ticks++;
+
+      // 프로세스가 running 상태일 경우 사용 자원 값 증가
+      if(myproc() && myproc()->state == RUNNING) {
+        myproc()->proc_tick++;
+        myproc()->cpu_used++;
+      }
+
       wakeup(&ticks);
       release(&tickslock);
     }
@@ -103,7 +110,7 @@ trap(struct trapframe *tf)
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
   if(myproc() && myproc()->state == RUNNING &&
-     tf->trapno == T_IRQ0+IRQ_TIMER)
+     tf->trapno == T_IRQ0+IRQ_TIMER && myproc()->proc_tick % TIMEQUANTUM == 0) // Time Quantum(30 tick) 마다 스케줄링
     yield();
 
   // Check if the process has been killed since we yielded
