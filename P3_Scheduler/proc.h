@@ -49,6 +49,23 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  int priority;               // 스케쥴 우선순위. 낮을 수록 높은 우선순위. 0~99 사이 값. idle process = 99
+  uint proc_tick;             // 프로세스가 스케줄링 된 이후 다시 스케줄링 되기 전까지 CPU를 사용한 시간(tick)
+  uint cpu_used;              // 프로세스가 생성된 이후 CPU를 사용한 총 합 시간(tick)
+};
+
+// run proc
+struct rproc {
+  struct proc *rproc; // process
+  
+  struct run_proc *next; // 다음 element
+};
+
+// run proc list
+struct rproc_list {
+  struct run_proc *head; // list 처음
+  struct run_proc *tail; // list 끝
 };
 
 // Process memory is laid out contiguously, low addresses first:

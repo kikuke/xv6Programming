@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "spinlock.h"
 
+struct rproc_list *run_queues[MAXRUNQ]; // 25개의 run queue
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
