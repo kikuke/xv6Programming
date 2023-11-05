@@ -23,6 +23,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int set_sche_info(int priority, uint timer);
 
 // ulib.c
 int stat(const char*, struct stat*);

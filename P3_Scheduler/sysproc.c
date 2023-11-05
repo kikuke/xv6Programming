@@ -89,3 +89,19 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int
+sys_set_sche_info()
+{
+  int prior;
+  uint timer;
+
+  if(argint(0, &prior) < 0 || argint(1, (int*)&timer))
+    return -1;
+  
+  myproc()->priority = prior;
+  while(myproc()->cpu_used < timer){
+  }
+
+  return 0;
+}
