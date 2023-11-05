@@ -152,13 +152,39 @@ put_runqueue(struct proc *proc)
 }
 
 void
+pull_runqueue(struct proc *proc)
+{
+  struct run_queue *bef_it = 0;
+  struct run_queue *it; // 순회용
+  struct run_queue *t_it;
+  // proc에 해당되는 run_queue 탐색
+  for (it = run_queues[proc->priority / 4]; it->rproc != proc; it = it->next)
+    bef_it = it;
+  
+  // 큐 조정
+  if (it == run_queues[proc->priority / 4]) { // 첫 번째 run_queue일 경우
+    run_queues[proc->priority / 4] = it->next;
+  } else {
+    bef_it->next = it->next;
+    if (bef_it->next == 0) { // tail이었을 경우 업데이트
+      for(t_it = run_queues[proc->priority / 4]; t_it->next != 0; t_it = t_it->next)
+        t_it->tail = bef_it;
+    }
+  }
+
+  it->is_used = 0;
+  // 오류 예방
+  it->next = 0;
+  it->rproc = 0;
+  it->tail = 0;
+}
+
+void
 update_priority(struct proc *proc, int priority)
 {
-  struct run_queue *it; // 순회용
-  // proc에 해당되는 run_queue 탐색
-  for (it = run_queues[proc->priority / 4]; it->rproc != proc; it = it->next) {}
-  
-  cprintf("find!");
+  pull_runqueue(proc);
+  proc->priority = priority;
+  put_runqueue(proc);
 }
 
 //PAGEBREAK: 32
@@ -313,6 +339,7 @@ exit(void)
 
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
+  pull_runqueue(curproc); // 종료시 runqueue에서 빼냄
   sched();
   panic("zombie exit");
 }
