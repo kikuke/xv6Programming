@@ -149,6 +149,13 @@ put_runqueue(struct proc *proc)
   }
   it->next = rq;
   it->tail = rq;
+
+  //Test
+  // if(proc->pid > 2) {
+  //   for(it = run_queues[proc->priority / 4]; it!= 0; it = it->next)
+  //     cprintf("putq - q: %d, pid: %d", proc->priority / 4, it->rproc->pid);
+  //   cprintf("\n");
+  // }
 }
 
 void
@@ -422,21 +429,40 @@ void
 ssu_update_priority()
 {
   struct run_queue *q;
+  struct run_queue *nq;
+  struct run_queue *eq;
   int up_prior;
+
+  //Test
+  // cprintf("\nssu_update_start\n");
+
   //Todo: 큐 맨뒤로 넣는거 필요함
   for (int i=0; i < MAXRUNQ; i++) { // 전체 RUNQ 탐색
-    for (q = run_queues[i]; q != 0; q = q->next) { // 연결 리스트 탐색
-      if (q->rproc->pid == IDLEPROC)
-        continue;
+    //Todo: 이부분이 잘못됨. 얘는 맨 마지막으로 가버리는데 바로 종료되서.
+    eq = q = run_queues[i];
+    do {
+      if (q == 0)
+        break;
+      nq = q->next;
 
       up_prior = q->rproc->priority + (q->rproc->proc_tick / 10);
-      if (up_prior > 99)
+      if (q->rproc->pid == IDLEPROC || up_prior > 99) // IDLEPROC은 고정
         up_prior = 99;
+      
+      //Test
+      // if(q->rproc->pid > 2)
+      //   cprintf("update - qidx: %d pid: %d\n", i, q->rproc->pid);
+
       update_priority(q->rproc, up_prior);
       //Todo: 위치 이거 이상하다고 생각함
       q->rproc->proc_tick = 0; // 다시 사용시간 초기화
-    }
+
+      q = nq;
+    } while (q != eq);
   }
+
+  //Test
+  // cprintf("\nssu_update_end\n");
 }
 
 //PAGEBREAK: 42
