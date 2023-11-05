@@ -151,6 +151,16 @@ put_runqueue(struct proc *proc)
   it->tail = rq;
 }
 
+void
+update_priority(struct proc *proc, int priority)
+{
+  struct run_queue *it; // 순회용
+  // proc에 해당되는 run_queue 탐색
+  for (it = run_queues[proc->priority / 4]; it->rproc != proc; it = it->next) {}
+  
+  cprintf("find!");
+}
+
 //PAGEBREAK: 32
 // Set up first user process.
 void
@@ -389,10 +399,15 @@ ssu_update_priority()
   //Todo: 큐 맨뒤로 넣는거 필요함
   for (int i=0; i < MAXRUNQ; i++) { // 전체 RUNQ 탐색
     for (q = run_queues[i]; q != 0; q = q->next) { // 연결 리스트 탐색
+      if (q->rproc->pid == IDLEPROC)
+        continue;
+
       up_prior = q->rproc->priority + (q->rproc->proc_tick / 10);
       if (up_prior > 99)
         up_prior = 99;
-      q->rproc->priority = up_prior; // prior 값 업데이트
+      update_priority(q->rproc, up_prior);
+      //Todo: 위치 이거 이상하다고 생각함
+      q->rproc->proc_tick = 0; // 다시 사용시간 초기화
     }
   }
 }
@@ -421,7 +436,6 @@ scheduler(void)
 
     // ssu_scheduling으로 변경
     if((p = ssu_schedule())) {
-      // c->proc->state = RUNNABLE; // Todo: 확인 되면 다시 주석해제 후 yield 부분 주석
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
@@ -433,11 +447,12 @@ scheduler(void)
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
+      // 사용 시간 출력
+      cprintf("sceduler pid: %d, priority: %d, proc_tick: %d, cpu_uesd: %d\n", p->pid, p->priority, p->proc_tick, p->cpu_used);
+
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
-
-      cprintf("sceduler pid: %d, priority: %d, proc_tick: %d\n", p->pid, p->priority, p->proc_tick);
     }
 
     release(&ptable.lock);
@@ -476,7 +491,7 @@ void
 yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
-  myproc()->state = RUNNABLE; // Todo: 확인되면 다시 주석 처리후 스케쥴링에서 주석 해제
+  myproc()->state = RUNNABLE;
   sched();
   release(&ptable.lock);
 }
@@ -551,7 +566,8 @@ wakeup1(void *chan)
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan){
-      p->priority = best_prior; // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
+      if(p->pid != IDLEPROC) // IDLEPROC이 아니라면
+        update_priority(p, best_prior); // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
       p->state = RUNNABLE;
     }
 

@@ -99,7 +99,7 @@ sys_set_sche_info()
   if(argint(0, &prior) < 0 || argint(1, (int*)&timer))
     return -1;
   
-  myproc()->priority = prior;
+  update_priority(myproc(), prior);
   while(myproc()->cpu_used < timer){
   }
 

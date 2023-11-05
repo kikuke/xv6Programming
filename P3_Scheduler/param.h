@@ -14,3 +14,4 @@
 #define MAXRUNQ      25   // run queue 최대 크기
 #define MAXPRIOR     99   // priority 최대 값
 #define TIMEQUANTUM  30   // tick단위 TQ 값
+#define IDLEPROC     1    // idle process 번호
