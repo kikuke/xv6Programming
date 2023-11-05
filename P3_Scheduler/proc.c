@@ -9,6 +9,7 @@
 
 struct run_queue run_queue_list[NPROC]; // 최대 프로세스 개수만큼 할당
 struct run_queue *run_queues[MAXRUNQ]; // 25개의 run queue
+int best_prior; // 현재 runq 내에서 관리하는 프로세스의 가장 작은 priority 값
 
 struct {
   struct spinlock lock;
@@ -252,9 +253,8 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
-  //Todo: 우선순위 등록 및 runqueue 등록
-  //Test
-  put_runqueue(np);
+  np->priority = best_prior; // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
+  put_runqueue(np); // run_queue에 등록
 
   release(&ptable.lock);
 
@@ -371,8 +371,10 @@ ssu_schedule()
         best_pri = best_proc->priority;
       }
     }
-    if (best_proc) // 해당 큐에서 발견됐다면 리턴
+    if (best_proc) {// 해당 큐에서 발견됐다면 리턴{
+      best_prior = best_pri;
       break;
+    }
   }
 
   return best_proc;
@@ -382,7 +384,17 @@ ssu_schedule()
 void
 ssu_update_priority()
 {
-  
+  struct run_queue *q;
+  int up_prior;
+  //Todo: 큐 맨뒤로 넣는거 필요함
+  for (int i=0; i < MAXRUNQ; i++) { // 전체 RUNQ 탐색
+    for (q = run_queues[i]; q != 0; q = q->next) { // 연결 리스트 탐색
+      up_prior = q->rproc->priority + (q->rproc->proc_tick / 10);
+      if (up_prior > 99)
+        up_prior = 99;
+      q->rproc->priority = up_prior; // prior 값 업데이트
+    }
+  }
 }
 
 //PAGEBREAK: 42
@@ -425,7 +437,7 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       c->proc = 0;
 
-      cprintf("sceduler pid: %d, proc_tick: %d\n", p->pid, p->proc_tick);
+      cprintf("sceduler pid: %d, priority: %d, proc_tick: %d\n", p->pid, p->priority, p->proc_tick);
     }
 
     release(&ptable.lock);
@@ -538,8 +550,10 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+    if(p->state == SLEEPING && p->chan == chan){
+      p->priority = best_prior; // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
       p->state = RUNNABLE;
+    }
 
   //Todo: priority 조정하기
 }
