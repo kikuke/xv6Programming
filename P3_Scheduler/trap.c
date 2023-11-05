@@ -107,11 +107,18 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
 
+  //60 tick 마다 priority 재계산
+  if(tf->trapno == T_IRQ0+IRQ_TIMER && ticks % (TIMEQUANTUM*2) == 0) {
+    ssu_update_priority();
+  }
+
+  // Time Quantum(30 tick) 마다 스케줄링
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
   if(myproc() && myproc()->state == RUNNING &&
-     tf->trapno == T_IRQ0+IRQ_TIMER && myproc()->proc_tick % TIMEQUANTUM == 0) // Time Quantum(30 tick) 마다 스케줄링
+     tf->trapno == T_IRQ0+IRQ_TIMER && myproc()->proc_tick % TIMEQUANTUM == 0) {
     yield();
+  }
 
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)

@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "spinlock.h"
 
+struct run_queue run_queue_list[NPROC]; // 최대 프로세스 개수만큼 할당
 struct run_queue *run_queues[MAXRUNQ]; // 25개의 run queue
 
 struct {
@@ -117,6 +118,38 @@ found:
   return p;
 }
 
+void
+put_runqueue(struct proc *proc)
+{
+  struct run_queue *rq = 0; // 사용할 공간
+  struct run_queue *it; // 순회용
+
+  for (int i = 0; i < NPROC; i++) { // 사용중이지 않은 run_queue 탐색
+    if (!run_queue_list[i].is_used) {
+      rq = &run_queue_list[i];
+      break;
+    }
+  }
+  if (!rq)
+    panic("put_runqueue");
+  
+  rq->is_used = 1;
+  rq->rproc = proc;
+  rq->next = 0;
+  rq->tail = rq;
+
+  if (run_queues[proc->priority / 4] == 0) {
+    run_queues[proc->priority / 4] = rq;
+    return;
+  }
+
+  for (it = run_queues[proc->priority / 4]; it->next != 0; it = it->next) { // 순회하며 run_queues 값 업데이트
+    it->tail = rq;
+  }
+  it->next = rq;
+  it->tail = rq;
+}
+
 //PAGEBREAK: 32
 // Set up first user process.
 void
@@ -152,6 +185,7 @@ userinit(void)
 
   p->priority = MAXPRIOR; // idle process(init process)는 priority 99(최대 값)
   p->state = RUNNABLE;
+  put_runqueue(p);
 
   release(&ptable.lock);
 }
@@ -218,6 +252,9 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
+  //Todo: 우선순위 등록 및 runqueue 등록
+  //Test
+  put_runqueue(np);
 
   release(&ptable.lock);
 
@@ -319,6 +356,7 @@ wait(void)
   }
 }
 
+// 스케줄 될 프로세스를 얻는 함수
 struct proc*
 ssu_schedule()
 {
@@ -333,12 +371,18 @@ ssu_schedule()
         best_pri = best_proc->priority;
       }
     }
-
     if (best_proc) // 해당 큐에서 발견됐다면 리턴
       break;
   }
 
   return best_proc;
+}
+
+// 우선순위 증가 함수
+void
+ssu_update_priority()
+{
+  
 }
 
 //PAGEBREAK: 42
@@ -362,25 +406,27 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    
-    if((p = ssu_schedule()) == 0) // ssu_scheduling으로 변경
-      panic("ssu_schedule");
-    
-    // c->proc->state = RUNNABLE; // Todo: 확인 되면 다시 주석해제 후 yield 부분 주석
 
-    // Switch to chosen process.  It is the process's job
-    // to release ptable.lock and then reacquire it
-    // before jumping back to us.
-    c->proc = p;
-    switchuvm(p);
-    p->state = RUNNING;
+    // ssu_scheduling으로 변경
+    if((p = ssu_schedule())) {
+      // c->proc->state = RUNNABLE; // Todo: 확인 되면 다시 주석해제 후 yield 부분 주석
 
-    swtch(&(c->scheduler), p->context);
-    switchkvm();
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
 
-    // Process is done running for now.
-    // It should have changed its p->state before coming back.
-    c->proc = 0;
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+
+      cprintf("sceduler pid: %d, proc_tick: %d\n", p->pid, p->proc_tick);
+    }
 
     release(&ptable.lock);
 

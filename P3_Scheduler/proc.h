@@ -57,6 +57,8 @@ struct proc {
 
 // run_queue
 struct run_queue {
+  int is_used;
+
   struct proc *rproc; // process
 
   struct run_queue *next; // 다음 element
