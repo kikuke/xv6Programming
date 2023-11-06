@@ -138,7 +138,7 @@ put_runqueue(struct proc *proc)
   rq->next = 0;
   rq->tail = rq;
 
-  if (run_queues[proc->priority / 4] == 0) {
+  if (run_queues[proc->priority / 4] == 0) { // 큐의 첫번째가 될 경우
     run_queues[proc->priority / 4] = rq;
     return;
   }
@@ -148,13 +148,6 @@ put_runqueue(struct proc *proc)
   }
   it->next = rq;
   it->tail = rq;
-
-  //Test
-  // if(proc->pid > 2) {
-  //   for(it = run_queues[proc->priority / 4]; it!= 0; it = it->next)
-  //     cprintf("putq - q: %d, pid: %d", proc->priority / 4, it->rproc->pid);
-  //   cprintf("\n");
-  // }
 }
 
 void
@@ -402,6 +395,7 @@ wait(void)
 
         p->priority = MAXPRIOR; // 종료된 프로세스는 혹시 모르니 최대값
         p->proc_tick = 0;
+        p->bef_used = 0;
         p->cpu_used = 0;
 
         p->state = UNUSED;
@@ -451,9 +445,7 @@ ssu_update_priority()
   struct run_queue *nq;
   struct run_queue *eq;
   int up_prior;
-
-  //Test
-  // cprintf("\nssu_update_start\n");
+  int used_time;
 
   for (int i=0; i < MAXRUNQ; i++) { // 전체 RUNQ 탐색
     eq = q = run_queues[i];
@@ -461,23 +453,16 @@ ssu_update_priority()
       if (q == 0)
         break;
       nq = q->next;
-
-      up_prior = q->rproc->priority + (q->rproc->proc_tick / 10);
+      used_time = q->rproc->cpu_used - q->rproc->bef_used;
+      up_prior = q->rproc->priority + (used_time / 10);
       if (q->rproc->pid == 1 || q->rproc->pid == 2 || up_prior > 99) // IDLEPROC은 고정
         up_prior = 99;
-
-      //Test
-      // if(q->rproc->pid > 2)
-      //   cprintf("update - qidx: %d pid: %d\n", i, q->rproc->pid);
-
+      
+      q->rproc->bef_used = q->rproc->cpu_used;
       update_priority(q->rproc, up_prior);
-
       q = nq;
     } while (q != eq);
   }
-
-  //Test
-  // cprintf("\nssu_update_end\n");
 }
 
 //PAGEBREAK: 42
@@ -516,9 +501,12 @@ scheduler(void)
       switchkvm();
 
 #ifdef DEBUG
-      cprintf("scheduler pid: %d, priority: %d, proc_tick: %d, cpu_used: %d\n", p->pid, p->priority, p->proc_tick, p->cpu_used);
+      cprintf("PID : %d, priority : %d, proc_tick : %d ticks, total_cpu_usage : %d ticks\n", p->pid, p->priority, p->proc_tick, p->cpu_used);
+      if (p->state == ZOMBIE)
+        cprintf("PID : %d terminated\n", p->pid);
 #endif
 
+      p->proc_tick = 0; // 다시 사용시간 초기화
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
@@ -562,8 +550,6 @@ yield(void)
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
   sched();
-  //Todo: 이 위치 맞는지 체크
-  myproc()->proc_tick = 0; // 다시 사용시간 초기화
   release(&ptable.lock);
 }
 
