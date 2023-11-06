@@ -122,6 +122,7 @@ void            wakeup(void*);
 void            yield(void);
 void            ssu_update_priority();
 void            update_priority(struct proc *proc, int priority);
+uint            get_all_cpu_ticks();
 
 // swtch.S
 void            swtch(struct context**, struct context*);

@@ -132,7 +132,7 @@ put_runqueue(struct proc *proc)
   }
   if (!rq)
     panic("put_runqueue");
-  
+
   rq->is_used = 1;
   rq->rproc = proc;
   rq->next = 0;
@@ -142,7 +142,7 @@ put_runqueue(struct proc *proc)
     return;
   }
 
-  for (it = run_queues[proc->priority / 4]; it->next != 0; it = it->next) {} // 순회하며 run_queues 값 업데이트
+  for (it = run_queues[proc->priority / 4]; it->next != 0; it = it->next) {} // 마지막 요소 찾기
 
   it->next = rq;
 }
@@ -152,10 +152,11 @@ pull_runqueue(struct proc *proc)
 {
   struct run_queue *bef_it = 0;
   struct run_queue *it; // 순회용
+  
   // proc에 해당되는 run_queue 탐색
   for (it = run_queues[proc->priority / 4]; it->rproc != proc; it = it->next)
     bef_it = it;
-  
+
   // 큐 조정
   if (it == run_queues[proc->priority / 4]) // 첫 번째 run_queue일 경우
     run_queues[proc->priority / 4] = it->next;
@@ -194,6 +195,19 @@ update_priority(struct proc *proc, int priority)
   pull_runqueue(proc);
   proc->priority = priority;
   put_runqueue(proc);
+}
+
+uint
+get_all_cpu_ticks()
+{
+  struct run_queue *q;
+  uint all_cpu_ticks = 0;
+
+  for (int i=0; i < MAXRUNQ; i++) // 전체 RUNQ 탐색
+    for (q = run_queues[i]; q != 0; q = q->next) // 연결 리스트 탐색
+      all_cpu_ticks += q->rproc->cpu_used;
+  
+  return all_cpu_ticks;
 }
 
 //PAGEBREAK: 32
@@ -387,6 +401,7 @@ wait(void)
         p->proc_tick = 0;
         p->priority_tick = 0;
         p->cpu_used = 0;
+        p->timer = 0;
 
         p->state = UNUSED;
         release(&ptable.lock);
@@ -433,23 +448,25 @@ ssu_update_priority()
 {
   struct run_queue *q;
   struct run_queue *nq;
-  struct run_queue *eq;
+  int q_len;
   int new_priority;
 
   for (int i=0; i < MAXRUNQ; i++) { // 전체 RUNQ 탐색
-    eq = q = run_queues[i];
-    do {
-      if (q == 0)
-        break;
-      nq = q->next;
+    q_len = 0;
+    for (q = run_queues[i]; q != 0; q = q->next)
+      q_len++;
+    
+    q = run_queues[i];
+    for (int i=0; i < q_len; i++) {
       new_priority = q->rproc->priority + (q->rproc->priority_tick / 10); // 우선순위 값 설정
       if (q->rproc->pid == 1 || q->rproc->pid == 2 || new_priority > 99) // IDLEPROC은 고정
         new_priority = 99;
-      
+
+      nq = q->next;
       update_priority(q->rproc, new_priority);
       q->rproc->priority_tick = 0;
       q = nq;
-    } while (q != eq);
+    }
   }
 }
 
@@ -477,7 +494,6 @@ scheduler(void)
 
     // ssu_scheduling으로 변경
     if((p = ssu_schedule())) {
-
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.

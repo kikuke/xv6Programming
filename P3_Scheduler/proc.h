@@ -54,6 +54,8 @@ struct proc {
   uint proc_tick;             // 프로세스가 스케줄링 된 이후 다시 스케줄링 되기 전까지 CPU를 사용한 시간(tick)
   uint priority_tick;         // priority 계산을 위한 시간 저장
   uint cpu_used;              // 프로세스가 생성된 이후 CPU를 사용한 총 합 시간(tick)
+
+  uint timer;                 // 임종 시간. 0이면 설정 x.
 };
 
 // run_queue

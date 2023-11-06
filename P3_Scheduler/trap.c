@@ -13,7 +13,6 @@ struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
-uint update_ticks; // 우선순위 재계산용 tick
 
 void
 tvinit(void)
@@ -58,8 +57,6 @@ trap(struct trapframe *tf)
         myproc()->proc_tick++;
         myproc()->priority_tick++;
         myproc()->cpu_used++;
-
-        update_ticks++;
       }
 
       wakeup(&ticks);
@@ -110,19 +107,22 @@ trap(struct trapframe *tf)
   // until it gets to the regular system call return.)
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
-
-  //60 tick 마다 priority 재계산
-  if(tf->trapno == T_IRQ0+IRQ_TIMER && update_ticks % (TIMEQUANTUM*2) == 0) {
+  
+  // 지정 시간 경과시 프로세스 종료
+  if (myproc() && myproc()->state == RUNNING &&
+      tf->trapno == T_IRQ0+IRQ_TIMER && myproc()->timer != 0 && myproc()->timer <= myproc()->cpu_used)
+    exit();
+    
+  // 60 tick 마다 priority 재계산
+  if(tf->trapno == T_IRQ0+IRQ_TIMER && get_all_cpu_ticks() % (TIMEQUANTUM*2) == 0)
     ssu_update_priority();
-  }
 
   // Time Quantum(30 tick) 마다 스케줄링
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
   if(myproc() && myproc()->state == RUNNING &&
-     tf->trapno == T_IRQ0+IRQ_TIMER && myproc()->proc_tick > 0&& myproc()->proc_tick % TIMEQUANTUM == 0) {
+     tf->trapno == T_IRQ0+IRQ_TIMER && myproc()->proc_tick > 0 && myproc()->proc_tick % TIMEQUANTUM == 0)
     yield();
-  }
 
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)

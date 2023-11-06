@@ -104,8 +104,7 @@ sys_set_sche_info()
     return -1;
 
   update_priority(myproc(), prior);
-  while(myproc()->cpu_used < timer){
-  }
+  myproc()->timer = timer;
 
   return 0;
 }
