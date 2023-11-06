@@ -9,7 +9,6 @@
 
 struct run_queue run_queue_list[NPROC]; // 최대 프로세스 개수만큼 할당
 struct run_queue *run_queues[MAXRUNQ]; // 25개의 run queue
-int best_prior; // 현재 runq 내에서 관리하는 프로세스의 가장 작은 priority 값
 
 struct {
   struct spinlock lock;
@@ -186,6 +185,26 @@ pull_runqueue(struct proc *proc)
   it->tail = 0;
 }
 
+int
+get_best_priority()
+{
+  struct run_queue *q;
+  int best_pri = MAXPRIOR; // 가장 높은 우선순위. MAXPRIOR도 스케줄 되야 하므로
+
+  for (int i=0; i < MAXRUNQ - 1; i++) { // 가장 마지막 큐를 제외한 전체 RUNQ 탐색.
+    for (q = run_queues[i]; q != 0; q = q->next) { // 연결 리스트 탐색
+      if (q->rproc->priority < best_pri) // 이전 프로세스보다 우선순위가 높을경우
+        best_pri = q->rproc->priority;
+    }
+    if (best_pri != MAXPRIOR) // 해당 큐에서 발견됐다면 리턴
+      break;
+  }
+  if (best_pri == MAXPRIOR)
+    best_pri = 0;
+  
+  return best_pri;
+}
+
 void
 update_priority(struct proc *proc, int priority)
 {
@@ -296,7 +315,9 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
-  np->priority = best_prior; // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
+  np->priority = get_best_priority(); // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
+  if (np->pid == 1 || np->pid == 2) // 만약 idle 프로세스라면 최대 prior 값 부여
+    np->priority = MAXPRIOR;
   put_runqueue(np); // run_queue에 등록
 
   release(&ptable.lock);
@@ -415,10 +436,8 @@ ssu_schedule()
         best_pri = best_proc->priority;
       }
     }
-    if (best_proc) {// 해당 큐에서 발견됐다면 리턴{
-      best_prior = best_pri;
+    if (best_proc) // 해당 큐에서 발견됐다면 리턴
       break;
-    }
   }
 
   return best_proc;
@@ -436,9 +455,7 @@ ssu_update_priority()
   //Test
   // cprintf("\nssu_update_start\n");
 
-  //Todo: 큐 맨뒤로 넣는거 필요함
   for (int i=0; i < MAXRUNQ; i++) { // 전체 RUNQ 탐색
-    //Todo: 이부분이 잘못됨. 얘는 맨 마지막으로 가버리는데 바로 종료되서.
     eq = q = run_queues[i];
     do {
       if (q == 0)
@@ -446,9 +463,11 @@ ssu_update_priority()
       nq = q->next;
 
       up_prior = q->rproc->priority + (q->rproc->proc_tick / 10);
-      if (q->rproc->pid == IDLEPROC || up_prior > 99) // IDLEPROC은 고정
+      if (q->rproc->pid == 1 || q->rproc->pid == 2 || up_prior > 99) // IDLEPROC은 고정
         up_prior = 99;
       
+      //Todo: 이부분 탐색. pid 1,2가 0이되는 문제
+      //Todo: 이 부분에서 무한루프를 돌고있음
       //Test
       // if(q->rproc->pid > 2)
       //   cprintf("update - qidx: %d pid: %d\n", i, q->rproc->pid);
@@ -500,8 +519,9 @@ scheduler(void)
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
-      // 사용 시간 출력
-      cprintf("sceduler pid: %d, priority: %d, proc_tick: %d, cpu_uesd: %d\n", p->pid, p->priority, p->proc_tick, p->cpu_used);
+#ifdef DEBUG
+      cprintf("scheduler pid: %d, priority: %d, proc_tick: %d, cpu_used: %d\n", p->pid, p->priority, p->proc_tick, p->cpu_used);
+#endif
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
@@ -619,12 +639,10 @@ wakeup1(void *chan)
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan){
-      if(p->pid != IDLEPROC) // IDLEPROC이 아니라면
-        update_priority(p, best_prior); // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
+      if(p->pid != 1 && p->pid != 2) // IDLEPROC이 아니라면
+        update_priority(p, get_best_priority()); // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
       p->state = RUNNABLE;
     }
-
-  //Todo: priority 조정하기
 }
 
 // Wake up all processes sleeping on chan.
