@@ -14,11 +14,15 @@ void scheduler_func(void)
     int isChild = 0;
     int test_map_len = sizeof(sched_test_map)/sizeof(sched_test_map[0]);
 
+    printf(1, "start scheduler_test\n");
+
     for (int i=0; i<PNUM; i++) {
         if (!isChild && (childs[i] = fork()) == 0) { // 부모에서 생성된 자식 프로세스일 경우
             isChild = 1;
             if (i < test_map_len)
                 set_sche_info(sched_test_map[i][0], sched_test_map[i][1]);
+            
+            exit();
         }
     }
 
@@ -26,6 +30,8 @@ void scheduler_func(void)
     if (!isChild)
         for (int i=0; i<PNUM; i++)
             wait();
+    
+    printf(1, "end of scheduler_test\n");
 }
 
 int main(void)
