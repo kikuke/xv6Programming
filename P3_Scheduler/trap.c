@@ -13,6 +13,7 @@ struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
+uint update_ticks; // 우선순위 재계산용 tick
 
 void
 tvinit(void)
@@ -57,6 +58,8 @@ trap(struct trapframe *tf)
         myproc()->proc_tick++;
         myproc()->priority_tick++;
         myproc()->cpu_used++;
+
+        update_ticks++;
       }
 
       wakeup(&ticks);
@@ -109,7 +112,7 @@ trap(struct trapframe *tf)
     exit();
 
   //60 tick 마다 priority 재계산
-  if(tf->trapno == T_IRQ0+IRQ_TIMER && ticks % (TIMEQUANTUM*2) == 0) {
+  if(tf->trapno == T_IRQ0+IRQ_TIMER && update_ticks % (TIMEQUANTUM*2) == 0) {
     ssu_update_priority();
   }
 
