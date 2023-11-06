@@ -52,7 +52,7 @@ struct proc {
 
   int priority;               // 스케쥴 우선순위. 낮을 수록 높은 우선순위. 0~99 사이 값. idle process = 99
   uint proc_tick;             // 프로세스가 스케줄링 된 이후 다시 스케줄링 되기 전까지 CPU를 사용한 시간(tick)
-  uint bef_used;              // priority 계산 이전 사용한 총 합 시간
+  uint priority_tick;         // priority 계산을 위한 시간 저장
   uint cpu_used;              // 프로세스가 생성된 이후 CPU를 사용한 총 합 시간(tick)
 };
 
@@ -63,7 +63,6 @@ struct run_queue {
   struct proc *rproc; // process
 
   struct run_queue *next; // 다음 element
-  struct run_queue *tail; // list 끝
 };
 
 // Process memory is laid out contiguously, low addresses first:

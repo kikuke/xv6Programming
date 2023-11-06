@@ -55,6 +55,7 @@ trap(struct trapframe *tf)
       // 프로세스가 running 상태일 경우 사용 자원 값 증가
       if(myproc() && myproc()->state == RUNNING) {
         myproc()->proc_tick++;
+        myproc()->priority_tick++;
         myproc()->cpu_used++;
       }
 

@@ -136,18 +136,15 @@ put_runqueue(struct proc *proc)
   rq->is_used = 1;
   rq->rproc = proc;
   rq->next = 0;
-  rq->tail = rq;
 
   if (run_queues[proc->priority / 4] == 0) { // 큐의 첫번째가 될 경우
     run_queues[proc->priority / 4] = rq;
     return;
   }
 
-  for (it = run_queues[proc->priority / 4]; it->next != 0; it = it->next) { // 순회하며 run_queues 값 업데이트
-    it->tail = rq;
-  }
+  for (it = run_queues[proc->priority / 4]; it->next != 0; it = it->next) {} // 순회하며 run_queues 값 업데이트
+
   it->next = rq;
-  it->tail = rq;
 }
 
 void
@@ -155,27 +152,20 @@ pull_runqueue(struct proc *proc)
 {
   struct run_queue *bef_it = 0;
   struct run_queue *it; // 순회용
-  struct run_queue *t_it;
   // proc에 해당되는 run_queue 탐색
   for (it = run_queues[proc->priority / 4]; it->rproc != proc; it = it->next)
     bef_it = it;
   
   // 큐 조정
-  if (it == run_queues[proc->priority / 4]) { // 첫 번째 run_queue일 경우
+  if (it == run_queues[proc->priority / 4]) // 첫 번째 run_queue일 경우
     run_queues[proc->priority / 4] = it->next;
-  } else {
+  else
     bef_it->next = it->next;
-    if (bef_it->next == 0) { // tail이었을 경우 업데이트
-      for(t_it = run_queues[proc->priority / 4]; t_it->next != 0; t_it = t_it->next)
-        t_it->tail = bef_it;
-    }
-  }
 
   it->is_used = 0;
   // 오류 예방
   it->next = 0;
   it->rproc = 0;
-  it->tail = 0;
 }
 
 int
@@ -395,7 +385,7 @@ wait(void)
 
         p->priority = MAXPRIOR; // 종료된 프로세스는 혹시 모르니 최대값
         p->proc_tick = 0;
-        p->bef_used = 0;
+        p->priority_tick = 0;
         p->cpu_used = 0;
 
         p->state = UNUSED;
@@ -444,8 +434,7 @@ ssu_update_priority()
   struct run_queue *q;
   struct run_queue *nq;
   struct run_queue *eq;
-  int up_prior;
-  int used_time;
+  int new_priority;
 
   for (int i=0; i < MAXRUNQ; i++) { // 전체 RUNQ 탐색
     eq = q = run_queues[i];
@@ -453,13 +442,12 @@ ssu_update_priority()
       if (q == 0)
         break;
       nq = q->next;
-      used_time = q->rproc->cpu_used - q->rproc->bef_used;
-      up_prior = q->rproc->priority + (used_time / 10);
-      if (q->rproc->pid == 1 || q->rproc->pid == 2 || up_prior > 99) // IDLEPROC은 고정
-        up_prior = 99;
+      new_priority = q->rproc->priority + (q->rproc->priority_tick / 10); // 우선순위 값 설정
+      if (q->rproc->pid == 1 || q->rproc->pid == 2 || new_priority > 99) // IDLEPROC은 고정
+        new_priority = 99;
       
-      q->rproc->bef_used = q->rproc->cpu_used;
-      update_priority(q->rproc, up_prior);
+      update_priority(q->rproc, new_priority);
+      q->rproc->priority_tick = 0;
       q = nq;
     } while (q != eq);
   }
