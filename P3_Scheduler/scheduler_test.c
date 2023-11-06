@@ -19,8 +19,10 @@ void scheduler_func(void)
     for (int i=0; i<PNUM; i++) {
         if (!isChild && (childs[i] = fork()) == 0) { // 부모에서 생성된 자식 프로세스일 경우
             isChild = 1;
-            if (i < test_map_len)
+            if (i < test_map_len) {
+                printf(1, "set_sche_info() pid = %d\n", getpid());
                 set_sche_info(sched_test_map[i][0], sched_test_map[i][1]);
+            }
             
             exit();
         }

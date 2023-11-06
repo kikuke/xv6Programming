@@ -471,8 +471,6 @@ ssu_update_priority()
       //   cprintf("update - qidx: %d pid: %d\n", i, q->rproc->pid);
 
       update_priority(q->rproc, up_prior);
-      //Todo: 위치 이거 이상하다고 생각함
-      q->rproc->proc_tick = 0; // 다시 사용시간 초기화
 
       q = nq;
     } while (q != eq);
@@ -564,6 +562,8 @@ yield(void)
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
   sched();
+  //Todo: 이 위치 맞는지 체크
+  myproc()->proc_tick = 0; // 다시 사용시간 초기화
   release(&ptable.lock);
 }
 
