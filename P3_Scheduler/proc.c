@@ -465,9 +465,7 @@ ssu_update_priority()
       up_prior = q->rproc->priority + (q->rproc->proc_tick / 10);
       if (q->rproc->pid == 1 || q->rproc->pid == 2 || up_prior > 99) // IDLEPROC은 고정
         up_prior = 99;
-      
-      //Todo: 이부분 탐색. pid 1,2가 0이되는 문제
-      //Todo: 이 부분에서 무한루프를 돌고있음
+
       //Test
       // if(q->rproc->pid > 2)
       //   cprintf("update - qidx: %d pid: %d\n", i, q->rproc->pid);
