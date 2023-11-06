@@ -170,14 +170,14 @@ pull_runqueue(struct proc *proc)
 }
 
 int
-get_best_priority()
+get_best_priority(struct proc * target)
 {
   struct run_queue *q;
   int best_pri = MAXPRIOR; // 가장 높은 우선순위. MAXPRIOR도 스케줄 되야 하므로
 
   for (int i=0; i < MAXRUNQ - 1; i++) { // 가장 마지막 큐를 제외한 전체 RUNQ 탐색.
     for (q = run_queues[i]; q != 0; q = q->next) { // 연결 리스트 탐색
-      if (q->rproc->priority < best_pri) // 이전 프로세스보다 우선순위가 높을경우
+      if (q->rproc != target && q->rproc->priority < best_pri) // 이전 프로세스보다 우선순위가 높을경우
         best_pri = q->rproc->priority;
     }
     if (best_pri != MAXPRIOR) // 해당 큐에서 발견됐다면 리턴
@@ -192,22 +192,10 @@ get_best_priority()
 void
 update_priority(struct proc *proc, int priority)
 {
+  // Todo: 잘못짠듯..? 2-2 큐가 이상함 pid가 6보다 뒤에나오는 것이 문제
   pull_runqueue(proc);
   proc->priority = priority;
   put_runqueue(proc);
-}
-
-uint
-get_all_cpu_ticks()
-{
-  struct run_queue *q;
-  uint all_cpu_ticks = 0;
-
-  for (int i=0; i < MAXRUNQ; i++) // 전체 RUNQ 탐색
-    for (q = run_queues[i]; q != 0; q = q->next) // 연결 리스트 탐색
-      all_cpu_ticks += q->rproc->cpu_used;
-  
-  return all_cpu_ticks;
 }
 
 //PAGEBREAK: 32
@@ -312,7 +300,7 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
-  np->priority = get_best_priority(); // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
+  np->priority = get_best_priority(np); // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
   if (np->pid == 1 || np->pid == 2) // 만약 idle 프로세스라면 최대 prior 값 부여
     np->priority = MAXPRIOR;
   put_runqueue(np); // run_queue에 등록
@@ -350,6 +338,7 @@ exit(void)
 
   acquire(&ptable.lock);
 
+  pull_runqueue(curproc); // 종료시 runqueue에서 빼냄
   // Parent might be sleeping in wait().
   wakeup1(curproc->parent);
 
@@ -364,7 +353,6 @@ exit(void)
 
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
-  pull_runqueue(curproc); // 종료시 runqueue에서 빼냄
   sched();
   panic("zombie exit");
 }
@@ -628,7 +616,7 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan){
       if(p->pid != 1 && p->pid != 2) // IDLEPROC이 아니라면
-        update_priority(p, get_best_priority()); // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
+        update_priority(p, get_best_priority(p)); // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
       p->state = RUNNABLE;
     }
 }
