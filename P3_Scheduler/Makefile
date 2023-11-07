@@ -91,8 +91,11 @@ CFLAGS += -fno-pie -nopie
 endif
 
 # 스케줄링 프로세스 디버그 옵션 추가
-ifeq ($(debug), 1)
+ifeq ($(debug), 1) # 프로세스 종료 디버깅
 CFLAGS += -DDEBUG
+endif
+ifeq ($(debug), 2) # 프로세스 종료, 큐 디버깅
+CFLAGS += -DDEBUG -DDEBUGQ
 endif
 
 xv6.img: bootblock kernel

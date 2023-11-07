@@ -163,20 +163,12 @@ put_runqueue(struct proc *proc)
 
   if (run_queues[proc->priority / 4] == 0) { // 큐의 첫번째가 될 경우
     run_queues[proc->priority / 4] = rq;
-
-  // Test
-  // cprintf("update put\n");
-  // print_run_queues();
     return;
   }
 
-  for (it = run_queues[proc->priority / 4]; it->next != 0; it = it->next) {
-  };
+  for (it = run_queues[proc->priority / 4]; it->next != 0; it = it->next) {};
 
   it->next = rq;
-  // Test
-  // cprintf("update put\n");
-  // print_run_queues();
 }
 
 void
@@ -199,10 +191,6 @@ pull_runqueue(struct proc *proc)
   // 오류 예방
   it->next = 0;
   it->rproc = 0;
-
-  // Test
-  // cprintf("update pull\n");
-  // print_run_queues();
 }
 
 int
@@ -228,13 +216,17 @@ get_best_priority(struct proc * target)
 void
 update_priority(struct proc *proc, int priority)
 {
+#ifdef DEBUGQ
   cprintf("update pid: %d, prior: %d, queue: ", proc->pid, priority);
   print_run_queue(proc->priority/4);
+#endif
   pull_runqueue(proc);
   proc->priority = priority;  
   put_runqueue(proc);
+#ifdef DEBUGQ
   cprintf("update result:\n");
   print_run_queues();
+#endif
 }
 
 //PAGEBREAK: 32
@@ -378,9 +370,6 @@ exit(void)
   acquire(&ptable.lock);
 
   pull_runqueue(curproc); // 종료시 runqueue에서 빼냄
-#ifdef DEBUG
-  cprintf("PID : %d terminated\n", curproc->pid);
-#endif
   // Parent might be sleeping in wait().
   wakeup1(curproc->parent);
 
@@ -481,7 +470,9 @@ ssu_update_priority()
   int q_len;
   int new_priority;
 
+#ifdef DEBUGQ
   cprintf("ssu_update()\n");
+#endif
   for (int i=0; i < MAXRUNQ; i++) { // 전체 RUNQ 탐색
     q_len = 0;
     for (q = run_queues[i]; q != 0; q = q->next)
@@ -536,6 +527,8 @@ scheduler(void)
 
 #ifdef DEBUG
       cprintf("PID : %d, priority : %d, proc_tick : %d ticks, total_cpu_usage : %d ticks\n", p->pid, p->priority, p->proc_tick, p->cpu_used);
+      if (p->state == ZOMBIE)
+        cprintf("PID : %d terminated\n", p->pid);
 #endif
 
       p->proc_tick = 0; // 다시 사용시간 초기화
