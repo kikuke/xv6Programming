@@ -110,15 +110,15 @@ trap(struct trapframe *tf)
   // until it gets to the regular system call return.)
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
+    
+  // 60 tick 마다 priority 재계산
+  if(tf->trapno == T_IRQ0+IRQ_TIMER && update_ticks != 0 && update_ticks % (TIMEQUANTUM*2) == 0)
+    ssu_update_priority();
   
   // 지정 시간 경과시 프로세스 종료
   if (myproc() && myproc()->state == RUNNING &&
       tf->trapno == T_IRQ0+IRQ_TIMER && myproc()->timer != 0 && myproc()->timer <= myproc()->cpu_used)
     exit();
-    
-  // 60 tick 마다 priority 재계산
-  if(tf->trapno == T_IRQ0+IRQ_TIMER && update_ticks != 0 && update_ticks % (TIMEQUANTUM*2) == 0)
-    ssu_update_priority();
 
   // Time Quantum(30 tick) 마다 스케줄링
   // Force process to give up CPU on clock tick.

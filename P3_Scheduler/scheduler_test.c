@@ -6,7 +6,7 @@
 
 // set_sche_info 실험 데이터
 // (prior, timer)
-int sched_test_map[][2] = {{1, 300}, {22, 600}, {34, 600}};
+int sched_test_map[][2] = {{1, 110}, {22, 200}, {11, 250}};
 
 void scheduler_func(void)
 {
@@ -14,11 +14,9 @@ void scheduler_func(void)
     int isChild = 0;
     int test_map_len = sizeof(sched_test_map)/sizeof(sched_test_map[0]);
 
+    printf(1, "start scheduler_test\n");
     for (int i=0; i<PNUM; i++) {
         if (!isChild && (childs[i] = fork()) == 0) { // 부모에서 생성된 자식 프로세스일 경우
-            if (i == 0)
-                printf(1, "start scheduler_test\n");
-
             isChild = 1;
             if (i < test_map_len)
                 set_sche_info(sched_test_map[i][0], sched_test_map[i][1]);
