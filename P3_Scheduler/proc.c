@@ -176,14 +176,26 @@ pull_runqueue(struct proc *proc)
 {
   struct run_queue *bef_it = 0;
   struct run_queue *it; // 순회용
+  int r_idx = MAXRUNQ; // 발견한 run_queue의 idx
   
   // proc에 해당되는 run_queue 탐색
-  for (it = run_queues[proc->priority / 4]; it->rproc != proc; it = it->next)
-    bef_it = it;
-
+  for (int i=0; i < MAXRUNQ; i++) { // 전체 RUNQ 탐색.
+    for (it = run_queues[i]; it != 0; it = it->next) { // Q 탐색
+      if (it->rproc == proc) { // 찾았을 경우
+        r_idx = i;
+        break;
+      }
+      bef_it = it;
+    }
+    if (r_idx != MAXRUNQ) // 찾았을경우
+      break;
+  }
+  if (it == 0)
+    panic("pull_runqueue");
+  
   // 큐 조정
-  if (it == run_queues[proc->priority / 4]) // 첫 번째 run_queue일 경우
-    run_queues[proc->priority / 4] = it->next;
+  if (it == run_queues[r_idx]) // 첫 번째 run_queue일 경우
+    run_queues[r_idx] = it->next;
   else
     bef_it->next = it->next;
 
@@ -649,7 +661,7 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan){
       if(p->pid != 1 && p->pid != 2) // IDLEPROC이 아니라면
-        update_priority(p, get_best_priority(p)); // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
+        p->priority = get_best_priority(p); // 현재 run_queue에서 관리하는 프로세스중 가장 작은 priority 값 부여
       p->state = RUNNABLE;
     }
 }
