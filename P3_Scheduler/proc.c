@@ -119,6 +119,30 @@ found:
 }
 
 void
+print_run_queue(int idx)
+{
+  struct run_queue *it; // 순회용
+  if (run_queues[idx] == 0) {
+    cprintf("NULL\n");
+    return;
+  }
+  cprintf("RUN Q IDX-%d: ", idx);
+  for (it = run_queues[idx]; it != 0; it = it->next)
+    cprintf("%d -> ", it->rproc->pid);
+  cprintf("NULL\n");
+}
+
+void
+print_run_queues()
+{
+  for (int i=0; i < MAXRUNQ; i++) {
+    if (run_queues[i] == 0)
+      continue;
+    print_run_queue(i);
+  }
+}
+
+void
 put_runqueue(struct proc *proc)
 {
   struct run_queue *rq = 0; // 사용할 공간
@@ -139,12 +163,20 @@ put_runqueue(struct proc *proc)
 
   if (run_queues[proc->priority / 4] == 0) { // 큐의 첫번째가 될 경우
     run_queues[proc->priority / 4] = rq;
+
+  // Test
+  // cprintf("update put\n");
+  // print_run_queues();
     return;
   }
 
-  for (it = run_queues[proc->priority / 4]; it->next != 0; it = it->next) {} // 마지막 요소 찾기
+  for (it = run_queues[proc->priority / 4]; it->next != 0; it = it->next) {
+  };
 
   it->next = rq;
+  // Test
+  // cprintf("update put\n");
+  // print_run_queues();
 }
 
 void
@@ -167,6 +199,10 @@ pull_runqueue(struct proc *proc)
   // 오류 예방
   it->next = 0;
   it->rproc = 0;
+
+  // Test
+  // cprintf("update pull\n");
+  // print_run_queues();
 }
 
 int
@@ -192,10 +228,13 @@ get_best_priority(struct proc * target)
 void
 update_priority(struct proc *proc, int priority)
 {
-  // Todo: 잘못짠듯..? 2-2 큐가 이상함 pid가 6보다 뒤에나오는 것이 문제
+  cprintf("update pid: %d, prior: %d, queue: ", proc->pid, priority);
+  print_run_queue(proc->priority/4);
   pull_runqueue(proc);
-  proc->priority = priority;
+  proc->priority = priority;  
   put_runqueue(proc);
+  cprintf("update result:\n");
+  print_run_queues();
 }
 
 //PAGEBREAK: 32
@@ -339,6 +378,9 @@ exit(void)
   acquire(&ptable.lock);
 
   pull_runqueue(curproc); // 종료시 runqueue에서 빼냄
+#ifdef DEBUG
+  cprintf("PID : %d terminated\n", curproc->pid);
+#endif
   // Parent might be sleeping in wait().
   wakeup1(curproc->parent);
 
@@ -439,6 +481,7 @@ ssu_update_priority()
   int q_len;
   int new_priority;
 
+  cprintf("ssu_update()\n");
   for (int i=0; i < MAXRUNQ; i++) { // 전체 RUNQ 탐색
     q_len = 0;
     for (q = run_queues[i]; q != 0; q = q->next)
@@ -488,14 +531,11 @@ scheduler(void)
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
-
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
 #ifdef DEBUG
       cprintf("PID : %d, priority : %d, proc_tick : %d ticks, total_cpu_usage : %d ticks\n", p->pid, p->priority, p->proc_tick, p->cpu_used);
-      if (p->state == ZOMBIE)
-        cprintf("PID : %d terminated\n", p->pid);
 #endif
 
       p->proc_tick = 0; // 다시 사용시간 초기화
