@@ -213,7 +213,7 @@ get_best_priority(struct proc * target)
 
   for (int i=0; i < MAXRUNQ - 1; i++) { // 가장 마지막 큐를 제외한 전체 RUNQ 탐색.
     for (q = run_queues[i]; q != 0; q = q->next) { // 연결 리스트 탐색
-      if (q->rproc != target && q->rproc->priority < best_pri) // 이전 프로세스보다 우선순위가 높을경우
+      if (q->rproc-> state == RUNNABLE && q->rproc->priority < best_pri) // 이전 프로세스보다 우선순위가 높을경우
         best_pri = q->rproc->priority;
     }
     if (best_pri != MAXPRIOR) // 해당 큐에서 발견됐다면 리턴
