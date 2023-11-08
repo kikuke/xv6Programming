@@ -431,6 +431,7 @@ wait(void)
         p->priority = MAXPRIOR; // 종료된 프로세스는 혹시 모르니 최대값
         p->proc_tick = 0;
         p->priority_tick = 0;
+        p->updated = 0; // 값 초기화
         p->cpu_used = 0;
         p->timer = 0;
 
@@ -479,6 +480,7 @@ ssu_update_priority()
 {
   struct run_queue *q;
   struct run_queue *nq;
+  struct proc *p;
   int q_len;
   int new_priority;
 
@@ -492,15 +494,23 @@ ssu_update_priority()
     
     q = run_queues[i];
     for (int i=0; i < q_len; i++) {
+      if (q->rproc->updated) // 이미 업데이트 됐을 경우
+        break;
       new_priority = q->rproc->priority + (q->rproc->priority_tick / 10); // 우선순위 값 설정
       if (q->rproc->pid == 1 || q->rproc->pid == 2 || new_priority > 99) // IDLEPROC은 고정
         new_priority = 99;
 
       nq = q->next;
+      p = q->rproc;
       update_priority(q->rproc, new_priority);
-      q->rproc->priority_tick = 0;
+      p->updated = 1; // 업데이트 됐음을 알림
+      p->priority_tick = 0;
       q = nq;
     }
+  }
+  for (int i=0; i < MAXRUNQ; i++) { // 다시 모든 run_queue에 대해 updated 값을 0으로 만들어줌
+    for (q = run_queues[i]; q != 0; q = q->next)
+      q->rproc->updated = 0;
   }
 }
 
