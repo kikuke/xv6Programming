@@ -481,19 +481,13 @@ ssu_update_priority()
   struct run_queue *q;
   struct run_queue *nq;
   struct proc *p;
-  int q_len;
   int new_priority;
 
 #ifdef DEBUGQ
   cprintf("ssu_update()\n");
 #endif
   for (int i=0; i < MAXRUNQ; i++) { // 전체 RUNQ 탐색
-    q_len = 0;
-    for (q = run_queues[i]; q != 0; q = q->next)
-      q_len++;
-    
-    q = run_queues[i];
-    for (int i=0; i < q_len; i++) {
+    for (q = run_queues[i]; q != 0; q = nq) {
       if (q->rproc->updated) // 이미 업데이트 됐을 경우
         break;
       new_priority = q->rproc->priority + (q->rproc->priority_tick / 10); // 우선순위 값 설정
@@ -505,7 +499,6 @@ ssu_update_priority()
       update_priority(q->rproc, new_priority);
       p->updated = 1; // 업데이트 됐음을 알림
       p->priority_tick = 0;
-      q = nq;
     }
   }
   for (int i=0; i < MAXRUNQ; i++) { // 다시 모든 run_queue에 대해 updated 값을 0으로 만들어줌
