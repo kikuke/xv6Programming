@@ -25,11 +25,11 @@ void
 acquire(struct spinlock *lk)
 {
   pushcli(); // disable interrupts to avoid deadlock.
-  if(holding(lk))
+  if(holding(lk)) // 내가 락건게 아니라면 아래 수행
     panic("acquire");
 
   // The xchg is atomic.
-  while(xchg(&lk->locked, 1) != 0)
+  while(xchg(&lk->locked, 1) != 0) // 누가 1집어놨다면 교환결과가 1이되어 계속 1을 리턴함
     ;
 
   // Tell the C compiler and the processor to not move loads or stores
@@ -62,7 +62,7 @@ release(struct spinlock *lk)
   // Release the lock, equivalent to lk->locked = 0.
   // This code can't use a C assignment, since it might
   // not be atomic. A real OS would use C atomics here.
-  asm volatile("movl $0, %0" : "+m" (lk->locked) : );
+  asm volatile("movl $0, %0" : "+m" (lk->locked) : ); // 락건거에 0으로 만들어줌
 
   popcli();
 }
@@ -85,6 +85,7 @@ getcallerpcs(void *v, uint pcs[])
     pcs[i] = 0;
 }
 
+// 잠겨있고 내꺼인지 확인. 잠겨있기만하고 내꺼가 아니면 0임
 // Check whether this cpu is holding the lock.
 int
 holding(struct spinlock *lock)
@@ -113,7 +114,7 @@ pushcli(void)
   mycpu()->ncli += 1;
 }
 
-// 다시 ncli 1감소 0이고 intena(인터럽허용)이 0이 아닐경우 sti 실행. sti는 모든 인터럽트에 대해 활성화
+// 다시 ncli가 0이 되었고, 이전에 인터럽트가 허용됐었을 경우 sti 실행. sti는 모든 인터럽트에 대해 활성화
 void
 popcli(void)
 {
