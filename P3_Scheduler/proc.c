@@ -545,7 +545,7 @@ scheduler(void)
       switchkvm();
 
 #ifdef DEBUG
-      cprintf("PID : %d, priority : %d, proc_tick : %d ticks, total_cpu_usage : %d ticks\n", p->pid, p->priority, p->proc_tick, p->cpu_used);
+      cprintf("PID : %d, NAME : %s, priority : %d, proc_tick : %d ticks, total_cpu_usage : %d ticks\n", p->pid, p->name, p->priority, p->proc_tick, p->cpu_used);
       if (p->state == ZOMBIE)
         cprintf("PID : %d terminated\n", p->pid);
 #endif
@@ -557,7 +557,6 @@ scheduler(void)
     }
 
     release(&ptable.lock);
-
   }
 }
 
