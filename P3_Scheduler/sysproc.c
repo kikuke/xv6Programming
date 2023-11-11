@@ -100,7 +100,7 @@ sys_set_sche_info()
   cprintf("set_sche_info() pid = %d\n", myproc()->pid);
 #endif
 
-  if(argint(0, &prior) < 0 || argint(1, (int*)&timer))
+  if(argint(0, &prior) < 0 || argint(1, (int*)&timer) < 0)
     return -1;
 
   update_priority(myproc(), prior);

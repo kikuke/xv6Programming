@@ -458,13 +458,17 @@ ssu_schedule()
 {
   struct run_queue *q;
   int best_pri = MAXPRIOR + 1; // 가장 높은 우선순위. MAXPRIOR도 스케줄 되야 하므로
+  int best_tick = TIMEQUANTUM + 1; // 가장 높은 TQ
   struct proc *best_proc = 0; // 가장 높은 우선순위 proc
 
   for (int i=0; i < MAXRUNQ; i++) { // 전체 RUNQ 탐색
     for (q = run_queues[i]; q != 0; q = q->next) { // 연결 리스트 탐색
-      if (q->rproc->state == RUNNABLE && q->rproc->priority < best_pri) { // RUNNABLE이고 이전 프로세스보다 우선순위가 높을경우
+      if (q->rproc->state == RUNNABLE && q->rproc->priority <= best_pri) { // RUNNABLE이고 이전 프로세스보다 우선순위가 높을경우
+        if (q->rproc->priority == best_pri && q->rproc->cpu_used >= best_tick) // 같을 경우는 proc_tick이 짧은 경우
+          continue;
         best_proc = q->rproc;
         best_pri = best_proc->priority;
+        best_tick = best_proc->cpu_used;
       }
     }
     if (best_proc) // 해당 큐에서 발견됐다면 리턴
