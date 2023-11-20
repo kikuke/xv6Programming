@@ -51,6 +51,7 @@ lapicw(int index, int value)
   lapic[ID];  // wait for write to finish, by reading
 }
 
+// local apic에 초기값을 설정해줌 cpu(코어)는 개별 lapic을 가지게 됨
 void
 lapicinit(void)
 {

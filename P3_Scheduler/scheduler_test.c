@@ -6,7 +6,7 @@
 
 // set_sche_info 실험 데이터
 // (prior, timer)
-int sched_test_map[][2] = {{1, 110}, {22, 200}, {11, 250}};
+int sched_test_map[][2] = {{1, 300}, {22, 600}, {34, 600}};
 
 void scheduler_func(void)
 {

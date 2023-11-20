@@ -101,8 +101,8 @@ mpinit(void)
   if((conf = mpconfig(&mp)) == 0)
     panic("Expect to run on an SMP");
   ismp = 1;
-  lapic = (uint*)conf->lapicaddr;
-  for(p=(uchar*)(conf+1), e=(uchar*)conf+conf->length; p<e; ){
+  lapic = (uint*)conf->lapicaddr; // lapic 주소를 저장함
+  for(p=(uchar*)(conf+1), e=(uchar*)conf+conf->length; p<e; ){ // 설정 정보를 따라 나머지 코어에 apic
     switch(*p){
     case MPPROC:
       proc = (struct mpproc*)p;
