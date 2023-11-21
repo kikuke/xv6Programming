@@ -52,6 +52,7 @@ bzero(int dev, int bno)
 
 // Blocks.
 
+// Todo: 잘 분석해보기 블럭할당
 // Allocate a zeroed disk block.
 static uint
 balloc(uint dev)
@@ -367,6 +368,7 @@ iunlockput(struct inode *ip)
 // are listed in ip->addrs[].  The next NINDIRECT blocks are
 // listed in block ip->addrs[NDIRECT].
 
+// Todo: 분석해보기 인다이렉트 할당에 대한 내용인듯
 // Return the disk block address of the nth block in inode ip.
 // If there is no such block, bmap allocates one.
 static uint
@@ -375,16 +377,16 @@ bmap(struct inode *ip, uint bn)
   uint addr, *a;
   struct buf *bp;
 
-  if(bn < NDIRECT){
+  if(bn < NDIRECT){ // 직접 블록에 할당됐을 경우
     if((addr = ip->addrs[bn]) == 0)
       ip->addrs[bn] = addr = balloc(ip->dev);
     return addr;
   }
   bn -= NDIRECT;
 
-  if(bn < NINDIRECT){
+  if(bn < NINDIRECT){ // 간접 포인터로 가리킬 수 있는 크기인 경우
     // Load indirect block, allocating if necessary.
-    if((addr = ip->addrs[NDIRECT]) == 0)
+    if((addr = ip->addrs[NDIRECT]) == 0) // 간접포인터 위치에 할당된 주소가 없는 경우
       ip->addrs[NDIRECT] = addr = balloc(ip->dev);
     bp = bread(ip->dev, addr);
     a = (uint*)bp->data;
@@ -496,8 +498,8 @@ writei(struct inode *ip, char *src, uint off, uint n)
   if(off + n > MAXFILE*BSIZE) // 파일 최대 크기를 넘어서는가
     return -1;
 
-  for(tot=0; tot<n; tot+=m, off+=m, src+=m){
-    bp = bread(ip->dev, bmap(ip, off/BSIZE));
+  for(tot=0; tot<n; tot+=m, off+=m, src+=m){ // n만큼 쓰기함
+    bp = bread(ip->dev, bmap(ip, off/BSIZE)); // offset이 
     m = min(n - tot, BSIZE - off%BSIZE);
     memmove(bp->data + off%BSIZE, src, m);
     log_write(bp);
