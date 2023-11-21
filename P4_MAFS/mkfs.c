@@ -167,6 +167,7 @@ main(int argc, char *argv[])
   exit(0);
 }
 
+// 해당 버퍼의 내용을 블럭크기만큼 섹터의 블럭에 씀
 void
 wsect(uint sec, void *buf)
 {
@@ -201,12 +202,13 @@ rinode(uint inum, struct dinode *ip)
   uint bn;
   struct dinode *dip;
 
-  bn = IBLOCK(inum, sb);
-  rsect(bn, buf);
-  dip = ((struct dinode*)buf) + (inum % IPB);
+  bn = IBLOCK(inum, sb); // 몇 번째 블럭에 해당 inode가 있는지 확인
+  rsect(bn, buf); // 버퍼에 한블럭 읽어옴
+  dip = ((struct dinode*)buf) + (inum % IPB); // 블럭에서, 해당 아이노드의 위치를 가라킴
   *ip = *dip;
 }
 
+// 해당 섹터의 내용을 한 블럭 읽어옴
 void
 rsect(uint sec, void *buf)
 {
@@ -252,6 +254,7 @@ balloc(int used)
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
+// Todo: 이거 분석해보기
 void
 iappend(uint inum, void *xp, int n)
 {

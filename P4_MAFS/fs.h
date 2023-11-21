@@ -21,9 +21,9 @@ struct superblock {
   uint bmapstart;    // Block number of first free map block
 };
 
-#define NDIRECT 12
-#define NINDIRECT (BSIZE / sizeof(uint))
-#define MAXFILE (NDIRECT + NINDIRECT)
+#define NDIRECT 12 // 직접 포인터 개수
+#define NINDIRECT (BSIZE / sizeof(uint)) // 간접 포인터 개수
+#define MAXFILE (NDIRECT + NINDIRECT) // Todo: 12+1이라서 이런건데 바꿔줘야함
 
 // On-disk inode structure
 struct dinode {

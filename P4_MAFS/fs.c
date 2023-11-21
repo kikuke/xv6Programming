@@ -475,6 +475,7 @@ readi(struct inode *ip, char *dst, uint off, uint n)
   return n;
 }
 
+// Todo: 분석하기
 // PAGEBREAK!
 // Write data to inode.
 // Caller must hold ip->lock.
@@ -484,15 +485,15 @@ writei(struct inode *ip, char *src, uint off, uint n)
   uint tot, m;
   struct buf *bp;
 
-  if(ip->type == T_DEV){
-    if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].write)
+  if(ip->type == T_DEV){ // 디바이스인 경우
+    if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].write) // 해당 디바이스 값 잘 설정됏나
       return -1;
-    return devsw[ip->major].write(ip, src, n);
+    return devsw[ip->major].write(ip, src, n); // consolewrite로 씀
   }
 
-  if(off > ip->size || off + n < off)
+  if(off > ip->size || off + n < off) // 이상한 위치에 쓰려하는가
     return -1;
-  if(off + n > MAXFILE*BSIZE)
+  if(off + n > MAXFILE*BSIZE) // 파일 최대 크기를 넘어서는가
     return -1;
 
   for(tot=0; tot<n; tot+=m, off+=m, src+=m){

@@ -92,6 +92,7 @@ filestat(struct file *f, struct stat *st)
   return -1;
 }
 
+// Todo: 분석하기
 // Read from file f.
 int
 fileread(struct file *f, char *addr, int n)
@@ -112,6 +113,7 @@ fileread(struct file *f, char *addr, int n)
   panic("fileread");
 }
 
+// Todo: 분석하기
 //PAGEBREAK!
 // Write to file f.
 int
