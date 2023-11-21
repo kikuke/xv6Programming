@@ -52,7 +52,7 @@ bzero(int dev, int bno)
 
 // Blocks.
 
-// Todo: 잘 분석해보기 블럭할당
+// 최초로 만나는 빈 블럭의 비트맵을 1로 설정후 빈 블럭을 리턴함
 // Allocate a zeroed disk block.
 static uint
 balloc(uint dev)
@@ -61,19 +61,19 @@ balloc(uint dev)
   struct buf *bp;
 
   bp = 0;
-  for(b = 0; b < sb.size; b += BPB){
-    bp = bread(dev, BBLOCK(b, sb));
-    for(bi = 0; bi < BPB && b + bi < sb.size; bi++){
+  for(b = 0; b < sb.size; b += BPB){ // 블럭당 비트맵 개수만큼 b를 증가
+    bp = bread(dev, BBLOCK(b, sb)); // b가 위치한 비트맵 블럭을 읽어옴. 버퍼에 락도 걸어놓음. 결과적으로 비트맵 한블럭씩 읽어오게 됨
+    for(bi = 0; bi < BPB && b + bi < sb.size; bi++){ // 비트단위로 순회
       m = 1 << (bi % 8);
-      if((bp->data[bi/8] & m) == 0){  // Is block free?
-        bp->data[bi/8] |= m;  // Mark block in use.
+      if((bp->data[bi/8] & m) == 0){  // Is block free? 해당 비트 블럭이 비어있나
+        bp->data[bi/8] |= m;  // Mark block in use. 비어있다면 사용한다고 마킹
         log_write(bp);
-        brelse(bp);
+        brelse(bp); // 읽어서 락해뒀던거 다시 원복
         bzero(dev, b + bi);
         return b + bi;
       }
     }
-    brelse(bp);
+    brelse(bp); // 읽어서 락해뒀던거 다시 원복
   }
   panic("balloc: out of blocks");
 }
@@ -214,6 +214,7 @@ ialloc(uint dev, short type)
   panic("ialloc: no inodes");
 }
 
+// inode의 데이터를 디스크의 dinode로 옮김
 // Copy a modified in-memory inode to disk.
 // Must be called after every change to an ip->xxx field
 // that lives on disk, since i-node cache is write-through.
@@ -224,9 +225,9 @@ iupdate(struct inode *ip)
   struct buf *bp;
   struct dinode *dip;
 
-  bp = bread(ip->dev, IBLOCK(ip->inum, sb));
-  dip = (struct dinode*)bp->data + ip->inum%IPB;
-  dip->type = ip->type;
+  bp = bread(ip->dev, IBLOCK(ip->inum, sb)); // 해당 아이노드가 위치한 블럭을 읽어들임
+  dip = (struct dinode*)bp->data + ip->inum%IPB; // 해당 블록의 inode를 읽어들임
+  dip->type = ip->type; // 이하 데이터 갱신
   dip->major = ip->major;
   dip->minor = ip->minor;
   dip->nlink = ip->nlink;
@@ -368,7 +369,7 @@ iunlockput(struct inode *ip)
 // are listed in ip->addrs[].  The next NINDIRECT blocks are
 // listed in block ip->addrs[NDIRECT].
 
-// Todo: 분석해보기 인다이렉트 할당에 대한 내용인듯
+// 해당 위치의 블록에 대한 블록 인덱스를 리턴. 만약 할당받은 블럭이 없다면 할당해서 줌
 // Return the disk block address of the nth block in inode ip.
 // If there is no such block, bmap allocates one.
 static uint
@@ -379,23 +380,23 @@ bmap(struct inode *ip, uint bn)
 
   if(bn < NDIRECT){ // 직접 블록에 할당됐을 경우
     if((addr = ip->addrs[bn]) == 0)
-      ip->addrs[bn] = addr = balloc(ip->dev);
-    return addr;
+      ip->addrs[bn] = addr = balloc(ip->dev); // 할당받은 블럭을 해당 직접 포인터에 저장
+    return addr; // 할당받은 블럭 idx를 리턴
   }
   bn -= NDIRECT;
 
   if(bn < NINDIRECT){ // 간접 포인터로 가리킬 수 있는 크기인 경우
     // Load indirect block, allocating if necessary.
     if((addr = ip->addrs[NDIRECT]) == 0) // 간접포인터 위치에 할당된 주소가 없는 경우
-      ip->addrs[NDIRECT] = addr = balloc(ip->dev);
-    bp = bread(ip->dev, addr);
-    a = (uint*)bp->data;
-    if((addr = a[bn]) == 0){
-      a[bn] = addr = balloc(ip->dev);
+      ip->addrs[NDIRECT] = addr = balloc(ip->dev); // 할당 받은 블럭을 indirect 포인터에 저장
+    bp = bread(ip->dev, addr); // 해당 블럭의 내용을 읽어들임. buf에 락걸림
+    a = (uint*)bp->data; // uint 포인터배열로 바라보겠다는 의미. 포인터가 uint 크기. 블록 / uint 만큼 포인터 생김
+    if((addr = a[bn]) == 0){ // 해당 간접 포인터의 인덱스가 가리키는 블록이 없다면 할당
+      a[bn] = addr = balloc(ip->dev); 
       log_write(bp);
     }
     brelse(bp);
-    return addr;
+    return addr; // 할당된 블록 idx 리턴
   }
 
   panic("bmap: out of range");
@@ -457,10 +458,10 @@ readi(struct inode *ip, char *dst, uint off, uint n)
   uint tot, m;
   struct buf *bp;
 
-  if(ip->type == T_DEV){
+  if(ip->type == T_DEV){ // 디바이스읽기인 경우
     if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].read)
       return -1;
-    return devsw[ip->major].read(ip, dst, n);
+    return devsw[ip->major].read(ip, dst, n); // consoleread임
   }
 
   if(off > ip->size || off + n < off)
@@ -469,9 +470,9 @@ readi(struct inode *ip, char *dst, uint off, uint n)
     n = ip->size - off;
 
   for(tot=0; tot<n; tot+=m, off+=m, dst+=m){
-    bp = bread(ip->dev, bmap(ip, off/BSIZE));
-    m = min(n - tot, BSIZE - off%BSIZE);
-    memmove(dst, bp->data + off%BSIZE, m);
+    bp = bread(ip->dev, bmap(ip, off/BSIZE)); // 해당 블록을 읽어들임. buf에 락걸림
+    m = min(n - tot, BSIZE - off%BSIZE); // 블록이 꽉찼다면 0, 데이터 끝이라면 데이터 끝 블록에 담긴 데이터 크기
+    memmove(dst, bp->data + off%BSIZE, m); // dst(메모리)에 블록단위로 해당 데이터를 쓰기함
     brelse(bp);
   }
   return n;
@@ -499,16 +500,16 @@ writei(struct inode *ip, char *src, uint off, uint n)
     return -1;
 
   for(tot=0; tot<n; tot+=m, off+=m, src+=m){ // n만큼 쓰기함
-    bp = bread(ip->dev, bmap(ip, off/BSIZE)); // offset이 
-    m = min(n - tot, BSIZE - off%BSIZE);
-    memmove(bp->data + off%BSIZE, src, m);
+    bp = bread(ip->dev, bmap(ip, off/BSIZE)); // 해당 블록을 읽어들임. buf에 락걸림
+    m = min(n - tot, BSIZE - off%BSIZE); // 블록이 꽉찼다면 0, 데이터 끝이라면 데이터 끝 블록에 담긴 데이터 크기
+    memmove(bp->data + off%BSIZE, src, m); // 해당 블록에 (실제론 buf) 블록단위로 쓰기함
     log_write(bp);
     brelse(bp);
   }
 
   if(n > 0 && off > ip->size){
-    ip->size = off;
-    iupdate(ip);
+    ip->size = off; // size 업데이트
+    iupdate(ip); // inmemory inode를 이용해 디스크의 inode를 업데이트
   }
   return n;
 }
