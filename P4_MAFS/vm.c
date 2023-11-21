@@ -192,6 +192,7 @@ inituvm(pde_t *pgdir, char *init, uint sz)
   memmove(mem, init, sz);
 }
 
+// Todo: 이거 분석해보기
 // Load a program segment into pgdir.  addr must be page-aligned
 // and the pages from addr to addr+sz must already be mapped.
 int
@@ -216,6 +217,7 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
   return 0;
 }
 
+// Todo: 이거 분석해보기
 // Allocate page tables and physical memory to grow process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
 int
@@ -248,6 +250,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   return newsz;
 }
 
+// Todo: 이거 분석해보기
 // Deallocate user pages to bring the process size from oldsz to
 // newsz.  oldsz and newsz need not be page-aligned, nor does newsz
 // need to be less than oldsz.  oldsz can be larger than the actual
@@ -278,6 +281,7 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   return newsz;
 }
 
+// Todo: 이거 분석해보기
 // Free a page table and all the physical memory pages
 // in the user part.
 void

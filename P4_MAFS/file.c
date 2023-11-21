@@ -92,7 +92,7 @@ filestat(struct file *f, struct stat *st)
   return -1;
 }
 
-// Todo: 분석하기
+// Todo: 분석하기 readi 같은거 위주로 따라가면 multilevel 구현 가능일듯
 // Read from file f.
 int
 fileread(struct file *f, char *addr, int n)
