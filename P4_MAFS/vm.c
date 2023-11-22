@@ -417,7 +417,7 @@ vm_getvp(pde_t *pgdir)
     if(pgdir[i] & PTE_P){ // 만약 해당 페이지 디렉토리 엔트리가 존재할 경우
       pgtab = (pte_t*)P2V(PTE_ADDR(pgdir[i])); // 페이지 디렉토리 엔트리가 가리키는 페이지 테이블을 꺼냄
       for(j = 0; j < NPTENTRIES; j++){
-        if (pgtab[j] & PTE_U) // 할당한 가상 페이지가 있다면 카운트 증가
+        if (pgtab[j]) // 할당한 가상 페이지가 있다면 카운트 증가
           cnt++;
       }
     }
