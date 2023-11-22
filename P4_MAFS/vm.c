@@ -404,6 +404,49 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
   return 0;
 }
 
+int
+vm_getvp(pde_t *pgdir)
+{
+  uint i, j;
+  int cnt = 0;
+  pte_t *pgtab;
+
+  if(pgdir == 0)
+    panic("freevm: no pgdir");
+  for(i = 0; i < PDX(KERNBASE); i++){ // 전체 페이지 디렉토리를 탐색
+    if(pgdir[i] & PTE_P){ // 만약 해당 페이지 디렉토리 엔트리가 존재할 경우
+      pgtab = (pte_t*)P2V(PTE_ADDR(pgdir[i])); // 페이지 디렉토리 엔트리가 가리키는 페이지 테이블을 꺼냄
+      for(j = 0; j < NPTENTRIES; j++){
+        if (pgtab[j] & PTE_U) // 할당한 가상 페이지가 있다면 카운트 증가
+          cnt++;
+      }
+    }
+  }
+
+  return cnt;
+}
+
+int
+vm_getpp(pde_t *pgdir)
+{
+  uint i, j;
+  int cnt = 0;
+  pte_t *pgtab;
+
+  if(pgdir == 0)
+    panic("freevm: no pgdir");
+  for(i = 0; i < PDX(KERNBASE); i++){ // 커널 베이스 이전까지의 전체 페이지 디렉토리를 탐색
+    if(pgdir[i] & PTE_P){ // 만약 해당 페이지 디렉토리 엔트리가 존재할 경우
+      pgtab = (pte_t*)P2V(PTE_ADDR(pgdir[i])); // 페이지 디렉토리 엔트리가 가리키는 페이지 테이블을 꺼냄
+      for(j = 0; j < NPTENTRIES; j++){
+        if (pgtab[j] & PTE_P) // 만약 페이지가 매핑이 되어있다면 카운트 증가
+          cnt++;
+      }
+    }
+  }
+
+  return cnt;
+}
 //PAGEBREAK!
 // Blank page.
 //PAGEBREAK!

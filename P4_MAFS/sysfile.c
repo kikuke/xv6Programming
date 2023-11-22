@@ -442,3 +442,25 @@ sys_pipe(void)
   fd[1] = fd1;
   return 0;
 }
+
+int
+sys_ssualloc(void)
+{
+  return 0;
+}
+
+int
+sys_getvp(void)
+{
+  pde_t *pgdir = myproc()->pgdir;
+
+  return vm_getvp(pgdir);
+}
+
+int
+sys_getpp(void)
+{
+  pde_t *pgdir = myproc()->pgdir;
+  
+  return vm_getpp(pgdir);
+}
