@@ -21,7 +21,7 @@ struct {
   struct spinlock lock;
   int use_lock;
   struct run *freelist;
-} kmem;
+} kmem; // kalloc에서 주로 씀
 
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just
@@ -42,7 +42,7 @@ kinit2(void *vstart, void *vend)
   freerange(vstart, vend);
   kmem.use_lock = 1;
 }
-// Todo: kinit 사용처 분석 후 kfree에 대해 분석하기
+// Todo: kinit 사용처 분석 후 kfree에 대해 분석하기   
 
 // 해당 범위의 메모리들을 kfree시켜서 모조리 freelist에 넣어 kalloc 할 수 있게 만듦
 void
