@@ -124,7 +124,9 @@ static struct kmap {
  { (void*)DEVSPACE, DEVSPACE,      0,         PTE_W}, // more devices
 };
 
-// 오직 시스템 호출 및 인터럽트에서 사용하는 페이지 테이블
+// 오직 시스템 호출 및 인터럽트에서 사용하는 페이지 테이블.
+// 최초로 해당 프로세스만의 페이지 디렉토리를 만들고
+// 페이지 디렉토리, 페이지 테이블에 커널 관련 가상주소 - 피지컬 주소를 미리 매핑
 // Set up kernel part of a page table.
 pde_t*
 setupkvm(void)
@@ -228,7 +230,7 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
   return 0;
 }
 
-// Todo: 이거 분석해보기
+// 해당 크기만큼 메모리 공간을 넓혀줌
 // Allocate page tables and physical memory to grow process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
 int
@@ -237,21 +239,21 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   char *mem;
   uint a;
 
-  if(newsz >= KERNBASE)
+  if(newsz >= KERNBASE) // 메모리 크기가 커널 가상 메모리 공간을 침범하면 안됨
     return 0;
-  if(newsz < oldsz)
+  if(newsz < oldsz) // 더 작게되면 그냥 쓰라고 리턴
     return oldsz;
 
-  a = PGROUNDUP(oldsz);
-  for(; a < newsz; a += PGSIZE){
-    mem = kalloc();
-    if(mem == 0){
+  a = PGROUNDUP(oldsz); // 페이지 반올림
+  for(; a < newsz; a += PGSIZE){ // 페이지 단위로 newsz보다 커질때까지 반복해서 페이지 테이블 생성, 메모리 공간 생성 및 매핑
+    mem = kalloc(); // 자유 메모리에서 메모리 공간 할당. 해당 메모리의 가상 주소임
+    if(mem == 0){ // 실패하면 이전꺼로 복구시킴
       cprintf("allocuvm out of memory\n");
       deallocuvm(pgdir, newsz, oldsz);
       return 0;
     }
     memset(mem, 0, PGSIZE);
-    if(mappages(pgdir, (char*)a, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
+    if(mappages(pgdir, (char*)a, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){ // 페이지 디렉토리, 페이지 테이블에 할당받은 메모리를 가상-물리 주소간 매핑시켜버림
       cprintf("allocuvm out of memory (2)\n");
       deallocuvm(pgdir, newsz, oldsz);
       kfree(mem);
@@ -261,7 +263,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   return newsz;
 }
 
-// Todo: 이거 분석해보기
+// 여분의 크기만큼을 할당해제시키는듯
 // Deallocate user pages to bring the process size from oldsz to
 // newsz.  oldsz and newsz need not be page-aligned, nor does newsz
 // need to be less than oldsz.  oldsz can be larger than the actual
@@ -292,7 +294,7 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   return newsz;
 }
 
-// Todo: 이거 분석해보기
+// 페이지 디렉토리의 모든 내용을 정리함
 // Free a page table and all the physical memory pages
 // in the user part.
 void
@@ -325,7 +327,8 @@ clearpteu(pde_t *pgdir, char *uva)
   *pte &= ~PTE_U;
 }
 
-// Todo: 분석하기
+// 해당 페이지 테이블의 내용을 그대로 복사한 페이지 디렉토리를 리턴
+// 자식 프로세스를 위해 만드는듯
 // Given a parent process's page table, create a copy
 // of it for a child.
 pde_t*
