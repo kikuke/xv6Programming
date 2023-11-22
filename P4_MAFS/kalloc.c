@@ -42,7 +42,9 @@ kinit2(void *vstart, void *vend)
   freerange(vstart, vend);
   kmem.use_lock = 1;
 }
+// Todo: kinit 사용처 분석 후 kfree에 대해 분석하기
 
+// 해당 범위의 메모리들을 kfree시켜서 모조리 freelist에 넣어 kalloc 할 수 있게 만듦
 void
 freerange(void *vstart, void *vend)
 {
@@ -51,6 +53,9 @@ freerange(void *vstart, void *vend)
   for(; p + PGSIZE <= (char*)vend; p += PGSIZE)
     kfree(p);
 }
+
+// 인자로 받은 포인터에대해 해당 페이지에 대한 값을 페이지 크기만큼 1로 초기화하고,
+// 인자로 받은 포인터를 freelist에 넣어 kalloc()에서 사용할 수 있도록 조치
 //PAGEBREAK: 21
 // Free the page of physical memory pointed at by v,
 // which normally should have been returned by a
@@ -76,13 +81,14 @@ kfree(char *v)
     release(&kmem.lock);
 }
 
+// 호출당 4096 바이트짜리 페이지의 물리메모리를 할당해줌. 커널만 쓸수 있는 포인터
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
 char*
 kalloc(void)
 {
-  struct run *r;
+  struct run *r; // 여기에는 이전에 4096바이트 단위 통으로 쪼개놓은 할당된 페이지 단위 포인터가 있음
 
   if(kmem.use_lock)
     acquire(&kmem.lock);
