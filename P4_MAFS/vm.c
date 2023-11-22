@@ -58,8 +58,10 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   return &pgtab[PTX(va)]; // 가상주소에서 페이지 테이블 인덱스를 추출해 페이지 테이블에서 해당 페이지의 가상주소가 담긴 pte를 리턴함
 }
 
-// Todo: 분석중
-// va에서 시작하는 가상주소에 대한 PTE를 생성. pa에서 시작하는 물리 주소를 참고하고 크키가 페이지 정렬되지 않을 수 있음
+// va에서 시작하는 가상주소에 대한 PTE를 생성. pa에서 시작하는 물리 주소를 참고하고 크기가 페이지 정렬되지 않을 수 있음
+// pde가 가리키는 페이지 테이블이 없다면 생성.
+// 가상주소를 참고해 페이지 단위로 각 페이지 테이블의 pte에 물리주소를 매핑하고 권한 설정 및 해당 pte가 존재함을 쓰기함
+// 인자 첫번째 pgdir은 프로세스들이 생성됐을때 setupkvm 같은거로 할당받은거 쓰는거임
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
@@ -69,15 +71,15 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
   char *a, *last;
   pte_t *pte;
 
-  a = (char*)PGROUNDDOWN((uint)va); // 시작 가상주소?? 반내림
-  last = (char*)PGROUNDDOWN(((uint)va) + size - 1); // 가상주소 끝 반내림
+  a = (char*)PGROUNDDOWN((uint)va); // 시작 가상주소?? 페이지 크기에 맞춰반내림
+  last = (char*)PGROUNDDOWN(((uint)va) + size - 1); // 가상주소 끝. 페이지 크기에 맞춰 반내림
   for(;;){
-    if((pte = walkpgdir(pgdir, a, 1)) == 0)
+    if((pte = walkpgdir(pgdir, a, 1)) == 0) // 해당 가상주소의 페이지 디렉토리의 페이지 테이블이 없다면 생성하고 가상주소에 맞는 pte를 가져옴
       return -1;
-    if(*pte & PTE_P)
+    if(*pte & PTE_P) // 만약 해당 pte에 페이지가 존재한다면 패닉.
       panic("remap");
-    *pte = pa | perm | PTE_P;
-    if(a == last)
+    *pte = pa | perm | PTE_P; // 해당 pte에 물리주소, 권한, 해당 페이지가 존재함을 기록
+    if(a == last) // 끝날때 까지
       break;
     a += PGSIZE;
     pa += PGSIZE;
