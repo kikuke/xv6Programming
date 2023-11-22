@@ -14,13 +14,13 @@ extern char end[]; // first address after kernel loaded from ELF file
                    // defined by the kernel linker script in kernel.ld
 
 struct run {
-  struct run *next;
+  struct run *next; // 페이지 단위 포인터
 };
 
 struct {
   struct spinlock lock;
   int use_lock;
-  struct run *freelist;
+  struct run *freelist; // 그냥 페이지 단위 포인터임
 } kmem; // kalloc에서 주로 씀
 
 // Initialization happens in two phases.

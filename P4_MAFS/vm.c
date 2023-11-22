@@ -29,6 +29,10 @@ seginit(void)
   lgdt(c->gdt, sizeof(c->gdt));
 }
 
+// 중요한 함수!
+// 상위 10비트는 페이지 디렉토리 인덱스, 그다음 10비트는 페이지 테이블 인덱스인 듯
+// 가상 주소 va에 해당하는 페이지 테이블 pgdir의 PTE 주소를 반환. alloc != 0인 경우 필요한 페이지 테이블 페이지를 만듦
+// 최종적으로 위 20비트를 이용해 해당 페이지 디렉토리 테이블 -> 페이지 테이블 -> 해당 가상주소의 페이지의 가상주소가 담긴 pte를 리턴함
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
@@ -38,22 +42,24 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   pde_t *pde;
   pte_t *pgtab;
 
-  pde = &pgdir[PDX(va)];
-  if(*pde & PTE_P){
-    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
-  } else {
-    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+  pde = &pgdir[PDX(va)]; // 가상주소에서 페이지 디렉토리 인덱스를 추출해 해당 가상주소의 페이지 디렉토리 엔트리를 가져옴
+  if(*pde & PTE_P){ // 해당 페이지 디렉토리 엔트리가 가리키는 pte가 존재한다면
+    pgtab = (pte_t*)P2V(PTE_ADDR(*pde)); // 해당 pte가 가리키는 값의 하위 12비트(offset)을 제외한뒤 가상주소로 변환. 페이지 테이블이 됨. cpu는 가상주소로 넣어줘야하기에?
+  } else { // 해당 페이지 디렉토리 엔트리가 가리키는 페이지가 존재하지 않는다면
+    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0) // alloc을 설정했을 경우 없을 경우 페이지를 할당. 페이지 테이블이 됨. 이때 들어오는 값은 가상주소임. cpu에서 자동 변환해주기에?
       return 0;
     // Make sure all those PTE_P bits are zero.
     memset(pgtab, 0, PGSIZE);
     // The permissions here are overly generous, but they can
     // be further restricted by the permissions in the page table
     // entries, if necessary.
-    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U; // 할당된 페이지를 해당 pde에 저장. 맨뒤에 세 비트는 권한 설정?
   }
-  return &pgtab[PTX(va)];
+  return &pgtab[PTX(va)]; // 가상주소에서 페이지 테이블 인덱스를 추출해 페이지 테이블에서 해당 페이지의 가상주소가 담긴 pte를 리턴함
 }
 
+// Todo: 분석중
+// va에서 시작하는 가상주소에 대한 PTE를 생성. pa에서 시작하는 물리 주소를 참고하고 크키가 페이지 정렬되지 않을 수 있음
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
@@ -63,8 +69,8 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
   char *a, *last;
   pte_t *pte;
 
-  a = (char*)PGROUNDDOWN((uint)va);
-  last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
+  a = (char*)PGROUNDDOWN((uint)va); // 시작 가상주소?? 반내림
+  last = (char*)PGROUNDDOWN(((uint)va) + size - 1); // 가상주소 끝 반내림
   for(;;){
     if((pte = walkpgdir(pgdir, a, 1)) == 0)
       return -1;
@@ -78,24 +84,26 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
   }
   return 0;
 }
-
+// 하나의 프로세스당 하나의 페이지 테이블이 존재하며, CPU가 프로세스를 실행하지 않을 때 사용되는 하나의 페이지 테이블(kpgdir)이 있습니다. 
+// 커널은 시스템 호출 및 인터럽트 시 현재 프로세스의 페이지 테이블을 사용합니다. 페이지 보호 비트는 사용자 코드가 커널의 매핑을 사용하지 못하도록 합니다.
+// 페이지 테이블은 오직 시스템 호출 및 인터럽트에서 사용할수 있다?? exec()나 setupkvm()때 세팅해줌
 // There is one page table per process, plus one that's used when
 // a CPU is not running any process (kpgdir). The kernel uses the
 // current process's page table during system calls and interrupts;
 // page protection bits prevent user code from using the kernel's
 // mappings.
-//
+
 // setupkvm() and exec() set up every page table like this:
-//
+
 //   0..KERNBASE: user memory (text+data+stack+heap), mapped to
-//                phys memory allocated by the kernel
+//                phys memory allocated by the kernel 유저영역은 kmap에 존재 x?
 //   KERNBASE..KERNBASE+EXTMEM: mapped to 0..EXTMEM (for I/O space)
 //   KERNBASE+EXTMEM..data: mapped to EXTMEM..V2P(data)
 //                for the kernel's instructions and r/o data
 //   data..KERNBASE+PHYSTOP: mapped to V2P(data)..PHYSTOP,
 //                                  rw data + free physical memory
 //   0xfe000000..0: mapped direct (devices such as ioapic)
-//
+
 // The kernel allocates physical memory for its heap and for user memory
 // between V2P(end) and the end of physical memory (PHYSTOP)
 // (directly addressable from end..P2V(PHYSTOP)).
@@ -114,6 +122,7 @@ static struct kmap {
  { (void*)DEVSPACE, DEVSPACE,      0,         PTE_W}, // more devices
 };
 
+// 오직 시스템 호출 및 인터럽트에서 사용하는 페이지 테이블
 // Set up kernel part of a page table.
 pde_t*
 setupkvm(void)
@@ -121,7 +130,7 @@ setupkvm(void)
   pde_t *pgdir;
   struct kmap *k;
 
-  if((pgdir = (pde_t*)kalloc()) == 0)
+  if((pgdir = (pde_t*)kalloc()) == 0) // 페이지를 페이지 디렉토리로 쓰겠다
     return 0;
   memset(pgdir, 0, PGSIZE);
   if (P2V(PHYSTOP) > (void*)DEVSPACE)
@@ -314,6 +323,7 @@ clearpteu(pde_t *pgdir, char *uva)
   *pte &= ~PTE_U;
 }
 
+// Todo: 분석하기
 // Given a parent process's page table, create a copy
 // of it for a child.
 pde_t*
