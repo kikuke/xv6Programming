@@ -473,6 +473,42 @@ ssu_valloc(pde_t *pgdir, void *va, uint size, int perm)
   return 0;
 }
 
+// 페이지테이블에 가상주소와 물리주소에 대한 매핑만 진행
+// 실패시 패닉
+static int
+ssu_mappages(pde_t *pgdir, void *va, uint pa)
+{
+  char *a;
+  pte_t *pte;
+
+  a = (char*)PGROUNDDOWN((uint)va); // 시작 가상주소?? 페이지 크기에 맞춰반내림
+  if((pte = walkpgdir(pgdir, a, 0)) == 0) // 가상주소에 해당하는 pte가 없다면 패닉
+    panic("no pte");
+  if(*pte & PTE_P) // 만약 해당 pte에 물리주소가 매핑되어 있었다면 패닉
+    panic("remap");
+  *pte |= pa | PTE_P; // 물리주소 매핑 및 set present bit
+  return 0;
+}
+
+// 페이지 폴트가 발생한 가상 주소에 대해 딱 한개의 물리 페이지를 할당해줌
+// 페이지 폴트용
+void
+ssu_palloc(pde_t *pgdir, uint va)
+{
+  char *mem;
+  uint a; // 실 할당 주소
+  
+  a = PGROUNDUP(va); // 페이지 반올림
+  mem = kalloc(); // 자유 메모리에서 딱 한페이지의 메모리 공간 할당. 해당 메모리의 가상 주소임
+  if(mem == 0)
+    panic("allocuvm out of memory");
+  memset(mem, 0, PGSIZE);
+  if(ssu_mappages(pgdir, (char*)a, V2P(mem)) < 0){ // 페이지테이블에 가상-물리주소를 매핑. 실패시 패닉.
+    kfree(mem);
+    panic("palloc failed");
+  }
+}
+
 int
 vm_ssualloc(pde_t *pgdir, uint oldsz, uint newsz)
 {

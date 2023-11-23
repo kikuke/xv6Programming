@@ -455,7 +455,10 @@ sys_ssualloc(void)
   
   oldsz = curproc->sz;
   newsz = oldsz + allocsz;
-  return vm_ssualloc(curproc->pgdir, oldsz, newsz);
+  if ((newsz = vm_ssualloc(curproc->pgdir, oldsz, newsz)) < 0)
+    return -1;
+  curproc->sz = newsz; // 할당받은 크기로 갱신
+  return oldsz; // 할당받은 메모리 시작 가상주소
 }
 
 int

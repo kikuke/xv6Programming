@@ -188,6 +188,7 @@ void            clearpteu(pde_t *pgdir, char *uva);
 int             vm_getvp(pde_t *pgdir);
 int             vm_getpp(pde_t *pgdir);
 int             vm_ssualloc(pde_t *pgdir, uint oldsz, uint newsz);
+void            ssu_palloc(pde_t *pgdir, uint va);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
