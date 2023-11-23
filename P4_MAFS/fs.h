@@ -21,7 +21,7 @@ struct superblock {
   uint bmapstart;    // Block number of first free map block
 };
 
-#define NDIRECT 6 // 직접 포인터 개수 // Todo: 머해야될지 모르겠다면 이거 기준으로 조회해보기
+#define NDIRECT 6 // 직접 포인터 개수 // Todo: 머해야될지 모르겠다면 이거 기준으로 조회해보기 이거쓰는 애들만 잘 고쳐보면 될듯
 #define N_INDIRECT_L1 4 // 1간접
 #define N_INDIRECT_L2 2 // 2간접
 #define N_INDIRECT_L3 1 // 3간접
@@ -35,7 +35,7 @@ struct dinode {
   short minor;          // Minor device number (T_DEV only)
   short nlink;          // Number of links to inode in file system
   uint size;            // Size of file (bytes)
-  uint addrs[NDIRECT + N_INDIRECT_L1 + N_INDIRECT_L2 + N_INDIRECT_L3];   // Data block addresses // Todo: 이거쓰는 애들 추적해보기
+  uint addrs[NDIRECT + N_INDIRECT_L1 + N_INDIRECT_L2 + N_INDIRECT_L3];   // Data block addresses
 };
 
 // Inodes per block.

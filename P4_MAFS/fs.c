@@ -369,6 +369,7 @@ iunlockput(struct inode *ip)
 // are listed in ip->addrs[].  The next NINDIRECT blocks are
 // listed in block ip->addrs[NDIRECT].
 
+// Todo: 수정필요
 // 해당 위치의 블록에 대한 블록 인덱스를 리턴. 만약 할당받은 블럭이 없다면 할당해서 줌
 // Return the disk block address of the nth block in inode ip.
 // If there is no such block, bmap allocates one.
@@ -402,6 +403,7 @@ bmap(struct inode *ip, uint bn)
   panic("bmap: out of range");
 }
 
+// Todo: 수정필요
 // Truncate inode (discard contents).
 // Only called when the inode has no links
 // to it (no directory entries referring to it)
