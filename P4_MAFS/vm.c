@@ -484,8 +484,6 @@ ssu_mappages(pde_t *pgdir, void *va, uint pa)
   a = (char*)PGROUNDDOWN((uint)va); // 시작 가상주소?? 페이지 크기에 맞춰반내림
   if((pte = walkpgdir(pgdir, a, 0)) == 0) // 가상주소에 해당하는 pte가 없다면 패닉
     panic("no pte");
-  // Todo: 문제지점
-  cprintf("map: %x %x\n", (uint)va, *pte);
   if(*pte & PTE_P) // 만약 해당 pte에 물리주소가 매핑되어 있었다면 패닉
     panic("remap");
   *pte |= pa | PTE_P; // 물리주소 매핑 및 set present bit
@@ -505,8 +503,6 @@ ssu_palloc(pde_t *pgdir, uint va)
   if(mem == 0)
     panic("allocuvm out of memory");
   memset(mem, 0, PGSIZE);
-  // Todo: 문제지점
-  cprintf("palloc: %x\n", (uint)va);
   if(ssu_mappages(pgdir, (char*)a, V2P(mem)) < 0){ // 페이지테이블에 가상-물리주소를 매핑. 실패시 패닉.
     kfree(mem);
     panic("palloc failed");
