@@ -21,9 +21,12 @@ struct superblock {
   uint bmapstart;    // Block number of first free map block
 };
 
-#define NDIRECT 12 // 직접 포인터 개수
+#define NDIRECT 6 // 직접 포인터 개수 // Todo: 머해야될지 모르겠다면 이거 기준으로 조회해보기
+#define N_INDIRECT_L1 4 // 1간접
+#define N_INDIRECT_L2 2 // 2간접
+#define N_INDIRECT_L3 1 // 3간접
 #define NINDIRECT (BSIZE / sizeof(uint)) // 간접 포인터 개수
-#define MAXFILE (NDIRECT + NINDIRECT) // Todo: 12+1이라서 이런건데 바꿔줘야함
+#define MAXFILE (NDIRECT + (N_INDIRECT_L1 * NINDIRECT) + (N_INDIRECT_L2 * NINDIRECT * NINDIRECT) + (N_INDIRECT_L3 * NINDIRECT * NINDIRECT * NINDIRECT))
 
 // On-disk inode structure
 struct dinode {
@@ -32,7 +35,7 @@ struct dinode {
   short minor;          // Minor device number (T_DEV only)
   short nlink;          // Number of links to inode in file system
   uint size;            // Size of file (bytes)
-  uint addrs[NDIRECT+1];   // Data block addresses
+  uint addrs[NDIRECT + N_INDIRECT_L1 + N_INDIRECT_L2 + N_INDIRECT_L3];   // Data block addresses // Todo: 이거쓰는 애들 추적해보기
 };
 
 // Inodes per block.

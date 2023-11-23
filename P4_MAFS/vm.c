@@ -498,7 +498,7 @@ ssu_palloc(pde_t *pgdir, uint va)
   char *mem;
   uint a; // 실 할당 주소
   
-  a = PGROUNDDOWN(va); // 페이지 반올림
+  a = PGROUNDDOWN(va); // 페이지 크기 반내림. 주소는 무조건 내려야함
   mem = kalloc(); // 자유 메모리에서 딱 한페이지의 메모리 공간 할당. 해당 메모리의 가상 주소임
   if(mem == 0)
     panic("allocuvm out of memory");
