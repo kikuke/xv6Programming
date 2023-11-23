@@ -447,6 +447,49 @@ vm_getpp(pde_t *pgdir)
 
   return cnt;
 }
+
+// 가상주소만 할당함
+// va에서 시작하는 가상주소에 대한 PTE를 생성. pa에서 시작하는 물리 주소를 참고하고 크기가 페이지 정렬되지 않을 수 있음
+// pde가 가리키는 페이지 테이블이 없다면 생성.
+// 가상주소를 참고해 페이지 단위로 각 페이지 테이블의 pte에 권한 설정만 진행. 물리 매핑이나 존재비트 설정x
+static int
+ssu_valloc(pde_t *pgdir, void *va, uint size, int perm)
+{
+  char *a, *last;
+  pte_t *pte;
+
+  a = (char*)PGROUNDDOWN((uint)va); // 시작 가상주소?? 페이지 크기에 맞춰반내림
+  last = (char*)PGROUNDDOWN(((uint)va) + size - 1); // 가상주소 끝. 페이지 크기에 맞춰 반내림
+  for(;;){
+    if((pte = walkpgdir(pgdir, a, 1)) == 0) // 해당 가상주소의 페이지 디렉토리의 페이지 테이블이 없다면 생성하고 가상주소에 맞는 pte를 가져옴
+      return -1;
+    if(*pte) // 만약 해당 pte에 어떠한 값이라도 존재한다면 패닉.
+      panic("remap");
+    *pte = perm; // 해당 pte에 권한만 기록
+    if(a == last) // 끝날때 까지
+      break;
+    a += PGSIZE;
+  }
+  return 0;
+}
+
+int
+vm_ssualloc(pde_t *pgdir, uint oldsz, uint newsz)
+{
+  uint a;
+
+  if(newsz >= KERNBASE || newsz < oldsz) // 메모리 크기가 커널 가상 메모리 공간을 침범하면 안됨
+    return -1;
+
+  a = PGROUNDUP(oldsz); // 페이지 반올림
+  for(; a < newsz; a += PGSIZE){ // 페이지 단위로 newsz보다 커질때까지 반복해서 페이지 테이블 생성, 메모리 공간 생성 및 매핑
+    if(ssu_valloc(pgdir, (char*)a, PGSIZE, PTE_W|PTE_U) < 0){ // 페이지 디렉토리, 페이지 테이블에 할당받은 메모리를 가상메모리만 매핑시켜버림
+      cprintf("allocuvm out of memory (2)\n");
+      return -1;
+    }
+  }
+  return newsz;
+}
 //PAGEBREAK!
 // Blank page.
 //PAGEBREAK!

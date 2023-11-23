@@ -446,14 +446,16 @@ sys_pipe(void)
 int
 sys_ssualloc(void)
 {
-  int newsz;
+  int allocsz;
+  uint oldsz, newsz;
+  struct proc *curproc = myproc();
 
-  // Todo: 이거 newsz <= 0 범위 체크 필요함
-  if(argint(0, &newsz) < 0 || newsz <= 0 || newsz % PGSIZE)
+  if(argint(0, &allocsz) < 0 || allocsz <= 0 || allocsz % PGSIZE)
     return -1;
   
-  // Todo: 메모리 할당 로직 P_BIT 설정과 kalloc, mapping 과정만 생략해서 uallac어쩌고 따라하면 될듯
-  return 0;
+  oldsz = curproc->sz;
+  newsz = oldsz + allocsz;
+  return vm_ssualloc(curproc->pgdir, oldsz, newsz);
 }
 
 int
