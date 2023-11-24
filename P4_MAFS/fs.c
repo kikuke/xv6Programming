@@ -392,18 +392,23 @@ bmap(struct inode *ip, uint bn)
   if (bn >= MAXFILE)
     panic("bmap: out of range");
   
+  // cprintf("bmap bn: %d\n", bn);
   for (int i=0; i<N_LAYER_LEN; i++) { // 레이어 단위로 체크. i는 레이어를 의미함
     if (bn < l_addrs_max[i] * bs_p_b) { // 해당 레이어에서 가리킬 수 있는 블록이라면
       s_idx = bn / bs_p_b;
       if ((addr = ip->addrs[d_idx + s_idx]) == 0) // addr은 addrs의 0단계를 가리키게됨
         ip->addrs[d_idx + s_idx] = addr = balloc(ip->dev);
       
+      // cprintf("Total layer %d\n", i);
+      // cprintf("layer 0 idx: %d\n", d_idx + s_idx);
       for (int j=0; j<i; j++) { // 단계만큼 파고듦
         bp = bread(ip->dev, addr); // 해당 블럭의 내용을 읽어들임. buf에 락걸림
         a = (uint*)bp->data; // uint 포인터배열로 바라보겠다는 의미. 포인터가 uint 크기. 블록 / uint 만큼 포인터 생김
 
         bs_p_b /= NINDIRECT; // 해당 레이어의 0단계 블록이 가리키는 크기
-        d_idx = bn / bs_p_b; // 해당 레이어의 블록의 idx
+        d_idx = (bn / bs_p_b) % NINDIRECT; // 해당 레이어의 블록의 idx
+
+        // cprintf("layer %d idx: %d\n", j+1, d_idx);
         if((addr = a[d_idx]) == 0){ // 해당 간접 포인터의 인덱스가 가리키는 블록이 없다면 할당
           a[d_idx] = addr = balloc(ip->dev); 
           log_write(bp);
@@ -411,7 +416,6 @@ bmap(struct inode *ip, uint bn)
         brelse(bp);
         bn %= bs_p_b; // 레이어 축소
       }
-
       return addr;
     }
 
@@ -429,7 +433,7 @@ itrunc_layer(struct inode *ip, uint addr, int depth)
   struct buf *bp;
   int i;
   uint *a;
-
+  
   if (depth <= 0)
     return;
 
@@ -444,7 +448,6 @@ itrunc_layer(struct inode *ip, uint addr, int depth)
   brelse(bp);
 }
 
-// Todo: 수정필요
 // Truncate inode (discard contents).
 // Only called when the inode has no links
 // to it (no directory entries referring to it)
@@ -455,24 +458,23 @@ itrunc(struct inode *ip)
 {
   uint addr;
   int i, depth = 0;
-  struct buf *bp;
-  uint *a;
   uint addr_len = NDIRECT + N_INDIRECT_L1 + N_INDIRECT_L2 + N_INDIRECT_L3;
   int layer_cnt = 0;
 
   for (i=0; i < addr_len; i++) { // 모든 addr에 대해
     if ((addr=ip->addrs[i]) == 0) // 해당 블럭이 없는 경우 패스
       continue;
-    
-    layer_cnt++;
     if (layer_cnt == l_addrs_max[depth]) {
       layer_cnt = 0;
       depth++;
     }
+
     itrunc_layer(ip, ip->addrs[i], depth); // 해당 단계 블록 삭제
 
     bfree(ip->dev, ip->addrs[i]);
     ip->addrs[i] = 0;
+
+    layer_cnt++;
   }
 
   ip->size = 0;
@@ -542,6 +544,7 @@ writei(struct inode *ip, char *src, uint off, uint n)
     return -1;
 
   for(tot=0; tot<n; tot+=m, off+=m, src+=m){ // n만큼 쓰기함
+    // Todo: 에러지점
     bp = bread(ip->dev, bmap(ip, off/BSIZE)); // 해당 블록을 읽어들임. buf에 락걸림
     m = min(n - tot, BSIZE - off%BSIZE); // 블록이 꽉찼다면 0, 데이터 끝이라면 데이터 끝 블록에 담긴 데이터 크기
     memmove(bp->data + off%BSIZE, src, m); // 해당 블록에 (실제론 buf) 블록단위로 쓰기함

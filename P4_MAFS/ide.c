@@ -154,6 +154,7 @@ iderw(struct buf *b)
     ;
   *pp = b;
 
+  // Todo: 에러 발생 지점
   // Start disk if necessary.
   if(idequeue == b)
     idestart(b);
