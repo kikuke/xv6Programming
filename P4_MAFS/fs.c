@@ -423,6 +423,27 @@ bmap(struct inode *ip, uint bn)
   panic("bmap: out of range");
 }
 
+void
+itrunc_layer(struct inode *ip, uint addr, int depth)
+{
+  struct buf *bp;
+  int i;
+  uint *a;
+
+  if (depth <= 0)
+    return;
+
+  bp = bread(ip->dev, addr);
+  a = (uint*)bp->data;
+  for (i=0; i<NINDIRECT; i++) {
+    if (a[i]) {
+      itrunc_layer(ip, a[i], depth-1);
+      bfree(ip->dev, a[i]);
+    }
+  }
+  brelse(bp);
+}
+
 // Todo: 수정필요
 // Truncate inode (discard contents).
 // Only called when the inode has no links
@@ -432,27 +453,26 @@ bmap(struct inode *ip, uint bn)
 static void
 itrunc(struct inode *ip)
 {
-  int i, j;
+  uint addr;
+  int i, depth = 0;
   struct buf *bp;
   uint *a;
+  uint addr_len = NDIRECT + N_INDIRECT_L1 + N_INDIRECT_L2 + N_INDIRECT_L3;
+  int layer_cnt = 0;
 
-  for(i = 0; i < NDIRECT; i++){
-    if(ip->addrs[i]){
-      bfree(ip->dev, ip->addrs[i]);
-      ip->addrs[i] = 0;
+  for (i=0; i < addr_len; i++) { // 모든 addr에 대해
+    if ((addr=ip->addrs[i]) == 0) // 해당 블럭이 없는 경우 패스
+      continue;
+    
+    layer_cnt++;
+    if (layer_cnt == l_addrs_max[depth]) {
+      layer_cnt = 0;
+      depth++;
     }
-  }
+    itrunc_layer(ip, ip->addrs[i], depth); // 해당 단계 블록 삭제
 
-  if(ip->addrs[NDIRECT]){
-    bp = bread(ip->dev, ip->addrs[NDIRECT]);
-    a = (uint*)bp->data;
-    for(j = 0; j < NINDIRECT; j++){
-      if(a[j])
-        bfree(ip->dev, a[j]);
-    }
-    brelse(bp);
-    bfree(ip->dev, ip->addrs[NDIRECT]);
-    ip->addrs[NDIRECT] = 0;
+    bfree(ip->dev, ip->addrs[i]);
+    ip->addrs[i] = 0;
   }
 
   ip->size = 0;
