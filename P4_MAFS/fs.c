@@ -27,6 +27,14 @@ static void itrunc(struct inode*);
 // only one device
 struct superblock sb; 
 
+// 각 레이어별 최대 addrs idx
+int l_addrs_max[N_LAYER_LEN] = {
+  NDIRECT,
+  N_INDIRECT_L1,
+  N_INDIRECT_L2,
+  N_INDIRECT_L3
+};
+
 // Read the super block.
 void
 readsb(int dev, struct superblock *sb)
@@ -369,7 +377,6 @@ iunlockput(struct inode *ip)
 // are listed in ip->addrs[].  The next NINDIRECT blocks are
 // listed in block ip->addrs[NDIRECT].
 
-// Todo: 수정필요
 // 해당 위치의 블록에 대한 블록 인덱스를 리턴. 만약 할당받은 블럭이 없다면 할당해서 줌
 // Return the disk block address of the nth block in inode ip.
 // If there is no such block, bmap allocates one.
@@ -378,26 +385,39 @@ bmap(struct inode *ip, uint bn)
 {
   uint addr, *a;
   struct buf *bp;
+  uint bs_p_b = 1; // addrs 블록 하나당 가리킬 수 있는 사이즈
+  uint d_idx = 0; // addrs를 직접 가리키는 포인터
+  uint s_idx; // 보조 인덱스
 
-  if(bn < NDIRECT){ // 직접 블록에 할당됐을 경우
-    if((addr = ip->addrs[bn]) == 0)
-      ip->addrs[bn] = addr = balloc(ip->dev); // 할당받은 블럭을 해당 직접 포인터에 저장
-    return addr; // 할당받은 블럭 idx를 리턴
-  }
-  bn -= NDIRECT;
+  if (bn >= MAXFILE)
+    panic("bmap: out of range");
+  
+  for (int i=0; i<N_LAYER_LEN; i++) { // 레이어 단위로 체크. i는 레이어를 의미함
+    if (bn < l_addrs_max[i] * bs_p_b) { // 해당 레이어에서 가리킬 수 있는 블록이라면
+      s_idx = bn / bs_p_b;
+      if ((addr = ip->addrs[d_idx + s_idx]) == 0) // addr은 addrs의 0단계를 가리키게됨
+        ip->addrs[d_idx + s_idx] = addr = balloc(ip->dev);
+      
+      for (int j=0; j<i; j++) { // 단계만큼 파고듦
+        bp = bread(ip->dev, addr); // 해당 블럭의 내용을 읽어들임. buf에 락걸림
+        a = (uint*)bp->data; // uint 포인터배열로 바라보겠다는 의미. 포인터가 uint 크기. 블록 / uint 만큼 포인터 생김
 
-  if(bn < NINDIRECT){ // 간접 포인터로 가리킬 수 있는 크기인 경우
-    // Load indirect block, allocating if necessary.
-    if((addr = ip->addrs[NDIRECT]) == 0) // 간접포인터 위치에 할당된 주소가 없는 경우
-      ip->addrs[NDIRECT] = addr = balloc(ip->dev); // 할당 받은 블럭을 indirect 포인터에 저장
-    bp = bread(ip->dev, addr); // 해당 블럭의 내용을 읽어들임. buf에 락걸림
-    a = (uint*)bp->data; // uint 포인터배열로 바라보겠다는 의미. 포인터가 uint 크기. 블록 / uint 만큼 포인터 생김
-    if((addr = a[bn]) == 0){ // 해당 간접 포인터의 인덱스가 가리키는 블록이 없다면 할당
-      a[bn] = addr = balloc(ip->dev); 
-      log_write(bp);
+        bs_p_b /= NINDIRECT; // 해당 레이어의 0단계 블록이 가리키는 크기
+        d_idx = bn / bs_p_b; // 해당 레이어의 블록의 idx
+        if((addr = a[d_idx]) == 0){ // 해당 간접 포인터의 인덱스가 가리키는 블록이 없다면 할당
+          a[d_idx] = addr = balloc(ip->dev); 
+          log_write(bp);
+        }
+        brelse(bp);
+        bn %= bs_p_b; // 레이어 축소
+      }
+
+      return addr;
     }
-    brelse(bp);
-    return addr; // 할당된 블록 idx 리턴
+
+    d_idx += l_addrs_max[i];
+    bn -= l_addrs_max[i] * bs_p_b; // 이전레이어와 관련된 블럭수는 없앰
+    bs_p_b *= NINDIRECT; // 해당 레이어의 0단계 블록이 가리키는 크기
   }
 
   panic("bmap: out of range");

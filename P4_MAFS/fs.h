@@ -21,6 +21,7 @@ struct superblock {
   uint bmapstart;    // Block number of first free map block
 };
 
+#define N_LAYER_LEN 4 // 레이어 개수
 #define NDIRECT 6 // 직접 포인터 개수 // Todo: 머해야될지 모르겠다면 이거 기준으로 조회해보기 이거쓰는 애들만 잘 고쳐보면 될듯
 #define N_INDIRECT_L1 4 // 1간접
 #define N_INDIRECT_L2 2 // 2간접
